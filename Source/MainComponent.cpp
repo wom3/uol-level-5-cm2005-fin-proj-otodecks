@@ -20,7 +20,11 @@ MainComponent::MainComponent()
         setAudioChannels (2, 2);
     }
     addAndMakeVisible(playButton);
+    addAndMakeVisible(stopButton);
     addAndMakeVisible(volSlider);
+    
+    playButton.addListener(this);
+    stopButton.addListener(this);
 }
 
 MainComponent::~MainComponent()
@@ -77,5 +81,18 @@ void MainComponent::resized()
     double rowH = getHeight() / 5;
     double rowW = getWidth();
     playButton.setBounds(0, 0, rowW, rowH);
-    volSlider.setBounds(0, rowH, rowW, rowH);
+    stopButton.setBounds(0, rowH, rowW, rowH);
+    volSlider.setBounds(0, 2 * rowH, rowW, rowH);
+}
+
+void MainComponent::buttonClicked(juce::Button* button)
+{
+    if (button == &playButton)
+    {
+        std::cout << "Play button was clicked" << std::endl;
+    }
+    if (button == &stopButton)
+    {
+        std::cout << "Stop button was clicked" << std::endl;
+    }
 }
