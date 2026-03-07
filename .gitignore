@@ -1,0 +1,19 @@
+# JUCE generated folders
+**/Builds/
+**/JuceLibraryCode/
+
+# Keep AppConfig.h within JuceLibraryCode tracked
+!**/JuceLibraryCode/AppConfig.h
+
+# OS and IDE specific files
+.DS_Store
+*.user
+*.suo
+*.ncb
+*.mode1v3
+*.pbxuser
+*.xcuserdatad
+*.xcscheme
+**/.vs
+**/.idea
+*/cmake-build
