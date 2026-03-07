@@ -19,6 +19,8 @@ MainComponent::MainComponent()
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
+    addAndMakeVisible(playButton);
+    addAndMakeVisible(volSlider);
 }
 
 MainComponent::~MainComponent()
@@ -72,4 +74,8 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
+    double rowH = getHeight() / 5;
+    double rowW = getWidth();
+    playButton.setBounds(0, 0, rowW, rowH);
+    volSlider.setBounds(0, rowH, rowW, rowH);
 }
