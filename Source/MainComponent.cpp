@@ -25,6 +25,7 @@ MainComponent::MainComponent()
     
     playButton.addListener(this);
     stopButton.addListener(this);
+    volSlider.addListener(this);
 }
 
 MainComponent::~MainComponent()
@@ -94,5 +95,13 @@ void MainComponent::buttonClicked(juce::Button* button)
     if (button == &stopButton)
     {
         std::cout << "Stop button was clicked" << std::endl;
+    }
+}
+
+void MainComponent::sliderValueChanged (juce::Slider* slider)
+{
+    if (slider == &volSlider)
+    {
+        std::cout << "Vol slider moved" << slider->getValue() << std::endl;
     }
 }
