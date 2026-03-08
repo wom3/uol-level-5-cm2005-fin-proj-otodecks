@@ -4,6 +4,9 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="YrfHYa" name="OtoDecks">
     <GROUP id="{CC0395BC-4C07-5F2C-1370-2B0929CDF535}" name="Source">
+      <FILE id="XnFEWe" name="DJAudioPlayer.cpp" compile="1" resource="0"
+            file="Source/DJAudioPlayer.cpp"/>
+      <FILE id="Hvxf3x" name="DJAudioPlayer.h" compile="0" resource="0" file="Source/DJAudioPlayer.h"/>
       <FILE id="jZ60Jj" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="Mdpv5I" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="GPj082" name="MainComponent.cpp" compile="1" resource="0"

@@ -54,16 +54,14 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     phase = 0;
     dphase = 0;
     
-    formatManager.registerBasicFormats();
-    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
-    resampleSource .prepareToPlay(samplesPerBlockExpected, sampleRate);
-    
+    player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-//    transportSourc e.getNextAudioBlock(bufferToFill);
-    resampleSource.getNextAudioBlock(bufferToFill);
+//    transportSource.getNextAudioBlock(bufferToFill);
+//    resampleSource.getNextAudioBlock(bufferToFill);
+    player1.getNextAudioBlock(bufferToFill);
 }
 
 
@@ -103,7 +101,7 @@ void MainComponent::releaseResources()
     // restarted due to a setting change.
 
     // For more details, see the help for AudioProcessor::releaseResources()
-    transportSource.releaseResources(); 
+    player1.releaseResources(); 
 }
 
 //==============================================================================
@@ -135,32 +133,34 @@ void MainComponent::buttonClicked(juce::Button* button)
     {
         playing = true;
         dphase = 0;
-        transportSource.setPosition(0);
-        transportSource.start();
+        player1.start();
     }
     if (button == &stopButton)
     {
         playing = false;
-        transportSource.stop();
+        player1.stop();
     }
     if (button == &loadButton)
     {
-        
-        // this does work in 6.1 but the syntax is a little funky
-        // https://docs.juce.com/master/classFileChooser.html#ac888983e4abdd8401ba7d6124ae64ff3
-        // - configure the dialogue
-        auto fileChooserFlags =
-        juce::FileBrowserComponent::canSelectFiles;
-        // - launch out of the main thread
-        // - note how we use a lambda function which you've probably
-        // not seen before. Please do not worry too much about that.
-        fChooser.launchAsync(fileChooserFlags, [this](const juce::FileChooser& chooser)
+        // Use JUCE 8 async FileChooser API
+        fChooser = std::make_unique<juce::FileChooser>(
+            "Select an audio file to play...",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.wav;*.mp3;*.aiff;*.aif");
+
+        auto flags = juce::FileBrowserComponent::openMode
+                   | juce::FileBrowserComponent::canSelectFiles;
+
+        fChooser->launchAsync(flags, [this](const juce::FileChooser& fc)
         {
-            juce::File chosenFile = chooser.getResult();
-            loadURL(juce::URL{chosenFile});
+            auto result = fc.getResult();
+            if (result.existsAsFile())
+            {
+                juce::URL audioURL{ result };
+                player1.loadURL(audioURL);
+            }
         });
     }
-    
 }
 
 void MainComponent::sliderValueChanged (juce::Slider* slider)
@@ -179,19 +179,20 @@ void MainComponent::sliderValueChanged (juce::Slider* slider)
 
 void MainComponent::loadURL(juce::URL audioURL)
 {
-    auto* reader = formatManager.createReaderFor(audioURL.createInputStream(false) );
-    
-    if (reader != nullptr)
+    // Use the legacy/deprecated overload that your JUCE version supports
+    std::unique_ptr<juce::InputStream> stream = audioURL.createInputStream(false);
+    if (stream != nullptr)
     {
-        std::unique_ptr<juce::AudioFormatReaderSource> newSource
-        (new juce:: AudioFormatReaderSource (reader, true));
-        transportSource.setSource (newSource.get(),
-        0, nullptr, reader->sampleRate);
-        readerSource.reset (newSource.release());
+        if (auto* reader = formatManager.createReaderFor(std::move(stream)))
+        {
+            std::unique_ptr<juce::AudioFormatReaderSource> newSource(
+                new juce::AudioFormatReaderSource(reader, true));
+            transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
+            readerSource.reset(newSource.release());
+            return;
+        }
     }
-    else
-    {
-    std::cout << "Something went wrong loading the file " << std::endl;
-    }
+
+    std::cout << "Something went wrong loading the file" << std::endl;
 }
- 
+  

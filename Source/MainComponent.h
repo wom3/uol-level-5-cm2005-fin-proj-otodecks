@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DJAudioPlayer.h"
 
 //==============================================================================
 /*
@@ -34,7 +35,7 @@ private:
     
     juce::TextButton playButton{ "PLAY" };
     juce::TextButton stopButton{ "STOP" };
-    juce::TextButton loadButton{ "LOAD " };
+    juce::TextButton loadButton{ "LOAD" };
     juce::Slider gainSlider;
     juce::Slider speedSlider;
     juce::Random rand;
@@ -49,7 +50,10 @@ private:
     juce::ResamplingAudioSource resampleSource{&transportSource , false, 2} ;
     
     void loadURL(juce::URL audioURL);
-    juce::FileChooser fChooser{"Select a file..."};
+    DJAudioPlayer player1;
+    
+//    juce::FileChooser fChooser{"Select a file..."};
+    std::unique_ptr<juce::FileChooser> fChooser;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
