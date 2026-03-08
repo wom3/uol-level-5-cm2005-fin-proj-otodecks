@@ -21,14 +21,14 @@ MainComponent::MainComponent()
     }
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
-    addAndMakeVisible(volSlider);
+    addAndMakeVisible(gainSlider);
     addAndMakeVisible(loadButton);
-    volSlider.setRange(0, 1);
+    gainSlider.setRange(0, 1);
     
     playButton.addListener(this);
     stopButton.addListener(this);
     loadButton.addListener(this);
-    volSlider.addListener(this);
+    gainSlider.addListener(this);
 }
 
 MainComponent::~MainComponent()
@@ -136,7 +136,7 @@ void MainComponent::resized()
     double rowW = getWidth();
     playButton.setBounds(0, 0, rowW, rowH);
     stopButton.setBounds(0, rowH, rowW, rowH);
-    volSlider.setBounds(0, 2 * rowH, rowW, rowH);
+    gainSlider.setBounds(0, 2 * rowH, rowW, rowH);
     loadButton.setBounds(0, 3 * rowH, rowW, rowH);
 }
 
@@ -146,10 +146,13 @@ void MainComponent::buttonClicked(juce::Button* button)
     {
         playing = true;
         dphase = 0;
+        transportSource.setPosition(0);
+        transportSource.start();
     }
     if (button == &stopButton)
     {
         playing = false;
+        transportSource.stop();
     }
     if (button == &loadButton)
     {
@@ -173,10 +176,11 @@ void MainComponent::buttonClicked(juce::Button* button)
 
 void MainComponent::sliderValueChanged (juce::Slider* slider)
 {
-    if (slider == &volSlider)
+    if (slider == &gainSlider)
     {
-        std::cout << "Vol slider moved" << volSlider.getValue() << std::endl;
-        gain = volSlider.getValue();
+        std::cout << gainSlider.getValue() << std::endl;
+        gain = gainSlider.getValue();
+        transportSource.setGain(gain);
     }
 }
 
@@ -191,7 +195,6 @@ void MainComponent::loadURL(juce::URL audioURL)
         transportSource.setSource (newSource.get(),
         0, nullptr, reader->sampleRate);
         readerSource.reset (newSource.release());
-        transportSource.start();
     }
     else
     {

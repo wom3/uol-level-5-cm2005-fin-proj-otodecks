@@ -35,7 +35,7 @@ private:
     juce::TextButton playButton{ "PLAY" };
     juce::TextButton stopButton{ "STOP" };
     juce::TextButton loadButton{ "LOAD " };
-    juce::Slider volSlider;
+    juce::Slider gainSlider;
     juce::Random rand;
     bool playing;
     double gain;
