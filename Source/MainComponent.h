@@ -38,6 +38,7 @@ private:
     juce::TextButton loadButton{ "LOAD" };
     juce::Slider gainSlider;
     juce::Slider speedSlider;
+    juce::Slider posSlider;
     DJAudioPlayer player1;
     
     std::unique_ptr<juce::FileChooser> fChooser;

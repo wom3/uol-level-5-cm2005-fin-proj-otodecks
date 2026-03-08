@@ -21,21 +21,27 @@ MainComponent::MainComponent()
     }
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
+    addAndMakeVisible(loadButton);
     addAndMakeVisible(gainSlider);
     addAndMakeVisible(speedSlider);
-    addAndMakeVisible(loadButton);
+    addAndMakeVisible(posSlider);
+    
     gainSlider.setRange(0, 1);
+    gainSlider.setValue(0.2);
 
     // Configure speed slider: 1.0 = normal speed
     speedSlider.setRange(0.25, 4.0, 0.0);
     speedSlider.setSkewFactorFromMidPoint(1.0);
     speedSlider.setValue(1.0);
     
+    posSlider.setRange(0, 1);
+    
     playButton.addListener(this);
     stopButton.addListener(this);
     loadButton.addListener(this);
     gainSlider.addListener(this);
     speedSlider.addListener(this);
+    posSlider.addListener(this);
 }
 
 MainComponent::~MainComponent()
@@ -86,13 +92,14 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
-    double rowH = getHeight() / 5;
+    double rowH = getHeight() / 6 ;
     double rowW = getWidth();
     playButton.setBounds(0, 0, rowW, rowH);
     stopButton.setBounds(0, rowH, rowW, rowH);
     gainSlider.setBounds(0, 2 * rowH, rowW, rowH);
     speedSlider.setBounds(0, 3 * rowH, rowW, rowH);
-    loadButton.setBounds(0, 4  * rowH, rowW, rowH);
+    posSlider.setBounds(0, 4 * rowH, rowW, rowH);
+    loadButton.setBounds(0, 5 * rowH, rowW, rowH);
 }
 
 void MainComponent::buttonClicked(juce::Button* button)
@@ -137,6 +144,10 @@ void MainComponent::sliderValueChanged (juce::Slider* slider)
     if (slider == &speedSlider)
     {
         player1.setSpeed(slider->getValue());  
+    }
+    if (slider == &posSlider)
+    {
+        player1.setPositionRelative(slider->getValue());
     }
 }
 
