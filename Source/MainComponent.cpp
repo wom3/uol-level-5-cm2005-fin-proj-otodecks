@@ -22,10 +22,12 @@ MainComponent::MainComponent()
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
     addAndMakeVisible(volSlider);
+    addAndMakeVisible(loadButton);
     volSlider.setRange(0, 1);
     
     playButton.addListener(this);
     stopButton.addListener(this);
+    loadButton.addListener(this);
     volSlider.addListener(this);
 }
 
@@ -51,23 +53,23 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     dphase = 0;
     
     formatManager.registerBasicFormats();
-    juce::URL audioURL{"file:///Users/owa/code/projuce/OtoDecks/tracks/aon_inspired.mp3"};
-    
-    auto* reader = formatManager.createReaderFor(audioURL.createInputStream(false) );
-    
-    if (reader != nullptr)
-    {
-        std::unique_ptr<juce::AudioFormatReaderSource> newSource
-        (new juce:: AudioFormatReaderSource (reader, true));
-        transportSource.setSource (newSource.get(),
-        0, nullptr, reader->sampleRate);
-        readerSource.reset (newSource.release());
-        transportSource.start();
-    }
-    else
-    {
-    std::cout << "Something went wrong loading the file " << std::endl;
-    }
+//    juce::URL audioURL{"file:///Users/owa/code/projuce/OtoDecks/tracks/aon_inspired.mp3"};
+//    
+//    auto* reader = formatManager.createReaderFor(audioURL.createInputStream(false) );
+//    
+//    if (reader != nullptr)
+//    {
+//        std::unique_ptr<juce::AudioFormatReaderSource> newSource
+//        (new juce:: AudioFormatReaderSource (reader, true));
+//        transportSource.setSource (newSource.get(),
+//        0, nullptr, reader->sampleRate);
+//        readerSource.reset (newSource.release());
+//        transportSource.start();
+//    }
+//    else
+//    {
+//    std::cout << "Something went wrong loading the file " << std::endl;
+//    }
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
@@ -135,6 +137,7 @@ void MainComponent::resized()
     playButton.setBounds(0, 0, rowW, rowH);
     stopButton.setBounds(0, rowH, rowW, rowH);
     volSlider.setBounds(0, 2 * rowH, rowW, rowH);
+    loadButton.setBounds(0, 3 * rowH, rowW, rowH);
 }
 
 void MainComponent::buttonClicked(juce::Button* button)
@@ -148,6 +151,23 @@ void MainComponent::buttonClicked(juce::Button* button)
     {
         playing = false;
     }
+    if (button == &loadButton)
+    {
+        
+        // this does work in 6.1 but the syntax is a little funky
+        // https://docs.juce.com/master/classFileChooser.html#ac888983e4abdd8401ba7d6124ae64ff3
+        // - configure the dialogue
+        auto fileChooserFlags =
+        juce::FileBrowserComponent::canSelectFiles;
+        // - launch out of the main thread
+        // - note how we use a lambda function which you've probably
+        // not seen before. Please do not worry too much about that.
+        fChooser.launchAsync(fileChooserFlags, [this](const juce::FileChooser& chooser)
+        {
+            juce::File chosenFile = chooser.getResult();
+            loadURL(juce::URL{chosenFile});
+        });
+    }
     
 }
 
@@ -159,3 +179,23 @@ void MainComponent::sliderValueChanged (juce::Slider* slider)
         gain = volSlider.getValue();
     }
 }
+
+void MainComponent::loadURL(juce::URL audioURL)
+{
+    auto* reader = formatManager.createReaderFor(audioURL.createInputStream(false) );
+    
+    if (reader != nullptr)
+    {
+        std::unique_ptr<juce::AudioFormatReaderSource> newSource
+        (new juce:: AudioFormatReaderSource (reader, true));
+        transportSource.setSource (newSource.get(),
+        0, nullptr, reader->sampleRate);
+        readerSource.reset (newSource.release());
+        transportSource.start();
+    }
+    else
+    {
+    std::cout << "Something went wrong loading the file " << std::endl;
+    }
+}
+ 
