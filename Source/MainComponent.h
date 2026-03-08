@@ -36,6 +36,7 @@ private:
     juce::TextButton stopButton{ "STOP" };
     juce::TextButton loadButton{ "LOAD " };
     juce::Slider gainSlider;
+    juce::Slider speedSlider;
     juce::Random rand;
     bool playing;
     double gain;
@@ -45,6 +46,7 @@ private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource>  readerSource;
     juce::AudioTransportSource transportSource;
+    juce::ResamplingAudioSource resampleSource{&transportSource , false, 2} ;
     
     void loadURL(juce::URL audioURL);
     juce::FileChooser fChooser{"Select a file..."};

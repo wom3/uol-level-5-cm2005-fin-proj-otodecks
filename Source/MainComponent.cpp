@@ -22,6 +22,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
     addAndMakeVisible(gainSlider);
+    addAndMakeVisible(speedSlider);
     addAndMakeVisible(loadButton);
     gainSlider.setRange(0, 1);
     
@@ -29,6 +30,7 @@ MainComponent::MainComponent()
     stopButton.addListener(this);
     loadButton.addListener(this);
     gainSlider.addListener(this);
+    speedSlider.addListener(this);
 }
 
 MainComponent::~MainComponent()
@@ -53,29 +55,15 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     dphase = 0;
     
     formatManager.registerBasicFormats();
-//    juce::URL audioURL{"file:///Users/owa/code/projuce/OtoDecks/tracks/aon_inspired.mp3"};
-//    
-//    auto* reader = formatManager.createReaderFor(audioURL.createInputStream(false) );
-//    
-//    if (reader != nullptr)
-//    {
-//        std::unique_ptr<juce::AudioFormatReaderSource> newSource
-//        (new juce:: AudioFormatReaderSource (reader, true));
-//        transportSource.setSource (newSource.get(),
-//        0, nullptr, reader->sampleRate);
-//        readerSource.reset (newSource.release());
-//        transportSource.start();
-//    }
-//    else
-//    {
-//    std::cout << "Something went wrong loading the file " << std::endl;
-//    }
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    resampleSource .prepareToPlay(samplesPerBlockExpected, sampleRate);
+    
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    transportSource.getNextAudioBlock(bufferToFill);
+//    transportSourc e.getNextAudioBlock(bufferToFill);
+    resampleSource.getNextAudioBlock(bufferToFill);
 }
 
 
@@ -137,7 +125,8 @@ void MainComponent::resized()
     playButton.setBounds(0, 0, rowW, rowH);
     stopButton.setBounds(0, rowH, rowW, rowH);
     gainSlider.setBounds(0, 2 * rowH, rowW, rowH);
-    loadButton.setBounds(0, 3 * rowH, rowW, rowH);
+    speedSlider.setBounds(0, 3 * rowH, rowW, rowH);
+    loadButton.setBounds(0, 4  * rowH, rowW, rowH);
 }
 
 void MainComponent::buttonClicked(juce::Button* button)
@@ -181,6 +170,10 @@ void MainComponent::sliderValueChanged (juce::Slider* slider)
         std::cout << gainSlider.getValue() << std::endl;
         gain = gainSlider.getValue();
         transportSource.setGain(gain);
+    }
+    if (slider == &speedSlider)
+    {
+        resampleSource.setResamplingRatio(slider->getValue());  
     }
 }
 
