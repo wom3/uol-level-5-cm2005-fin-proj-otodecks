@@ -34,17 +34,13 @@ private:
     //==============================================================================
     // Your private member variables go here...
     
-    juce::TextButton playButton{ "PLAY" };
-    juce::TextButton stopButton{ "STOP" };
-    juce::TextButton loadButton{ "LOAD" };
-    juce::Slider gainSlider;
-    juce::Slider speedSlider;
-    juce::Slider posSlider;
-//    DJAudioPlayer player1;
+    DJAudioPlayer player1;
+    DeckGUI deck1{&player1};
     
-    DJAudioPlayer player;
-    DeckGUI deck1{&player};
-    DeckGUI deck2{&player};
+    DJAudioPlayer player2;
+    DeckGUI deck2{&player2};
+    
+    juce::MixerAudioSource mixerSource;
     
     std::unique_ptr<juce::FileChooser> fChooser;
     
