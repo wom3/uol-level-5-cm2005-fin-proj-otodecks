@@ -2,6 +2,7 @@
 
 //==============================================================================
 MainComponent::MainComponent()
+//DeckGUI::DeckGUI(DJAudioPlayer* _player) : player(_player)
 {
     // Make sure you set the size of the component after
     // you add any child components.
@@ -19,29 +20,8 @@ MainComponent::MainComponent()
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
-    addAndMakeVisible(playButton);
-    addAndMakeVisible(stopButton);
-    addAndMakeVisible(loadButton);
-    addAndMakeVisible(gainSlider);
-    addAndMakeVisible(speedSlider);
-    addAndMakeVisible(posSlider);
-    
-    gainSlider.setRange(0, 1);
-    gainSlider.setValue(0.2);
-
-    // Configure speed slider: 1.0 = normal speed
-    speedSlider.setRange(0.25, 4.0, 0.0);
-    speedSlider.setSkewFactorFromMidPoint(1.0);
-    speedSlider.setValue(1.0);
-    
-    posSlider.setRange(0, 1);
-    
-    playButton.addListener(this);
-    stopButton.addListener(this);
-    loadButton.addListener(this);
-    gainSlider.addListener(this);
-    speedSlider.addListener(this);
-    posSlider.addListener(this);
+    addAndMakeVisible(deck1);
+    addAndMakeVisible(deck2);
 }
 
 MainComponent::~MainComponent()
@@ -61,12 +41,12 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     // For more details, see the help for AudioProcessor::prepareToPlay()
     
-    player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
+//    player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    player1.getNextAudioBlock(bufferToFill);
+//    player1.getNextAudioBlock(bufferToFill);
 }
 
 void MainComponent::releaseResources()
@@ -75,7 +55,7 @@ void MainComponent::releaseResources()
     // restarted due to a setting change.
 
     // For more details, see the help for AudioProcessor::releaseResources()
-    player1.releaseResources(); 
+//    player1.releaseResources(); 
 }
 
 //==============================================================================
@@ -92,63 +72,57 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
-    double rowH = getHeight() / 6 ;
-    double rowW = getWidth();
-    playButton.setBounds(0, 0, rowW, rowH);
-    stopButton.setBounds(0, rowH, rowW, rowH);
-    gainSlider.setBounds(0, 2 * rowH, rowW, rowH);
-    speedSlider.setBounds(0, 3 * rowH, rowW, rowH);
-    posSlider.setBounds(0, 4 * rowH, rowW, rowH);
-    loadButton.setBounds(0, 5 * rowH, rowW, rowH);
+    deck1.setBounds(0, 0, getWidth()/2, getHeight());
+    deck2.setBounds(getWidth()/2, 0, getWidth()/2, getHeight());
 }
 
 void MainComponent::buttonClicked(juce::Button* button)
 {
-    if (button == &playButton)
-    {
-        player1.start();
-    }
-    if (button == &stopButton)
-    {
-        player1.stop();
-    }
-    if (button == &loadButton)
-    {
-        // Use JUCE 8 async FileChooser API
-        fChooser = std::make_unique<juce::FileChooser>(
-            "Select an audio file to play...",
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.wav;*.mp3;*.aiff;*.aif");
-
-        auto flags = juce::FileBrowserComponent::openMode
-                   | juce::FileBrowserComponent::canSelectFiles;
-
-        fChooser->launchAsync(flags, [this](const juce::FileChooser& fc)
-        {
-            auto result = fc.getResult();
-            if (result.existsAsFile())
-            {
-                juce::URL audioURL{ result };
-                player1.loadURL(audioURL);
-            }
-        });
-    }
+//    if (button == &playButton)
+//    {
+//        player1.start();
+//    }
+//    if (button == &stopButton)
+//    {
+//        player1.stop();
+//    }
+//    if (button == &loadButton)
+//    {
+//        // Use JUCE 8 async FileChooser API
+//        fChooser = std::make_unique<juce::FileChooser>(
+//            "Select an audio file to play...",
+//            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+//            "*.wav;*.mp3;*.aiff;*.aif");
+//
+//        auto flags = juce::FileBrowserComponent::openMode
+//                   | juce::FileBrowserComponent::canSelectFiles;
+//
+//        fChooser->launchAsync(flags, [this](const juce::FileChooser& fc)
+//        {
+//            auto result = fc.getResult();
+//            if (result.existsAsFile())
+//            {
+//                juce::URL audioURL{ result };
+//                player1.loadURL(audioURL);
+//            }
+//        });
+//    }
 }
 
 void MainComponent::sliderValueChanged (juce::Slider* slider)
 {
-    if (slider == &gainSlider)
-    {
-        player1.setGain(slider-> getValue());
-    }
-    if (slider == &speedSlider)
-    {
-        player1.setSpeed(slider->getValue());  
-    }
-    if (slider == &posSlider)
-    {
-        player1.setPositionRelative(slider->getValue());
-    }
+//    if (slider == &gainSlider)
+//    {
+//        player1.setGain(slider-> getValue());
+//    }
+//    if (slider == &speedSlider)
+//    {
+//        player1.setSpeed(slider->getValue());  
+//    }
+//    if (slider == &posSlider)
+//    {
+//        player1.setPositionRelative(slider->getValue());
+//    }
 }
 
 

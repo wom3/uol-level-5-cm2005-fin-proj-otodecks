@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "DJAudioPlayer.h"
+#include "DeckGUI.h"
 
 //==============================================================================
 /*
@@ -39,7 +40,11 @@ private:
     juce::Slider gainSlider;
     juce::Slider speedSlider;
     juce::Slider posSlider;
-    DJAudioPlayer player1;
+//    DJAudioPlayer player1;
+    
+    DJAudioPlayer player;
+    DeckGUI deck1{&player};
+    DeckGUI deck2{&player};
     
     std::unique_ptr<juce::FileChooser> fChooser;
     
