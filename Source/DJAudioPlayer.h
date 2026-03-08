@@ -27,6 +27,7 @@ class DJAudioPlayer : public juce::AudioSource
     void setGain(double gain);
     void setSpeed(double ratio);
     void setPosition(double posInSecs);
+    void setPositionRelative(double pos);
     
     void start();
     void stop();
@@ -36,4 +37,5 @@ class DJAudioPlayer : public juce::AudioSource
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource>  readerSource;
     juce::AudioTransportSource transportSource;
+    juce::ResamplingAudioSource resampleSource{&transportSource, false, 2};
 };

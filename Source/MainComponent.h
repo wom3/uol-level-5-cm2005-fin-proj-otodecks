@@ -38,21 +38,8 @@ private:
     juce::TextButton loadButton{ "LOAD" };
     juce::Slider gainSlider;
     juce::Slider speedSlider;
-    juce::Random rand;
-    bool playing;
-    double gain;
-    float phase;
-    double dphase;
-    
-    juce::AudioFormatManager formatManager;
-    std::unique_ptr<juce::AudioFormatReaderSource>  readerSource;
-    juce::AudioTransportSource transportSource;
-    juce::ResamplingAudioSource resampleSource{&transportSource , false, 2} ;
-    
-    void loadURL(juce::URL audioURL);
     DJAudioPlayer player1;
     
-//    juce::FileChooser fChooser{"Select a file..."};
     std::unique_ptr<juce::FileChooser> fChooser;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
