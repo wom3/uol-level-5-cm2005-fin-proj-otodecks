@@ -22,6 +22,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
     addAndMakeVisible(volSlider);
+    volSlider.setRange(0, 1);
     
     playButton.addListener(this);
     stopButton.addListener(this);
@@ -44,17 +45,40 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // but be careful - it will be called on the audio thread, not the GUI thread.
 
     // For more details, see the help for AudioProcessor::prepareToPlay()
+    playing = false;
+    gain = 0.5;
+    phase = 0;
+    dphase = 0;
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
     // Your audio-processing code goes here!
+    if (!playing)
+    {
+        bufferToFill.clearActiveBufferRegion();
+        return;
+    }
+    
+    auto* leftChannel = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
+    auto* rightChannel = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
+    
+    for (auto i = 0; i < bufferToFill.numSamples; ++i)
+    {
+        auto sample = fmod(phase, 1.0f);
+        phase += fmod(dphase, 0.01f);
+        dphase += 0.0000005f;
+        leftChannel[i] = sample * 0.125f * gain;
+        rightChannel[i] = sample * 0.125f * gain;
+    }
+    
+    
 
     // For more details, see the help for AudioProcessor::getNextAudioBlock()
 
     // Right now we are not producing any data, in which case we need to clear the buffer
     // (to prevent the output of random noise)
-    bufferToFill.clearActiveBufferRegion();
+//    bufferToFill.clearActiveBufferRegion();
 }
 
 void MainComponent::releaseResources()
@@ -90,18 +114,21 @@ void MainComponent::buttonClicked(juce::Button* button)
 {
     if (button == &playButton)
     {
-        std::cout << "Play button was clicked" << std::endl;
+        playing = true;
+        dphase = 0;
     }
     if (button == &stopButton)
     {
-        std::cout << "Stop button was clicked" << std::endl;
+        playing = false;
     }
+    
 }
 
 void MainComponent::sliderValueChanged (juce::Slider* slider)
 {
     if (slider == &volSlider)
     {
-        std::cout << "Vol slider moved" << slider->getValue() << std::endl;
+        std::cout << "Vol slider moved" << volSlider.getValue() << std::endl;
+        gain = volSlider.getValue();
     }
 }

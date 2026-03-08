@@ -35,6 +35,11 @@ private:
     juce::TextButton playButton{ "PLAY" };
     juce::TextButton stopButton{ "STOP" };
     juce::Slider volSlider;
-
+    juce::Random rand;
+    bool playing;
+    double gain;
+    float phase;
+    double dphase;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
