@@ -25,6 +25,11 @@ MainComponent::MainComponent()
     addAndMakeVisible(speedSlider);
     addAndMakeVisible(loadButton);
     gainSlider.setRange(0, 1);
+
+    // Configure speed slider: 1.0 = normal speed
+    speedSlider.setRange(0.25, 4.0, 0.0);
+    speedSlider.setSkewFactorFromMidPoint(1.0);
+    speedSlider.setValue(1.0);
     
     playButton.addListener(this);
     stopButton.addListener(this);

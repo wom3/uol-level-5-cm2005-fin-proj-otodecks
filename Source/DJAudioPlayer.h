@@ -37,5 +37,6 @@ class DJAudioPlayer : public juce::AudioSource
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource>  readerSource;
     juce::AudioTransportSource transportSource;
+    // Wrap transportSource with a resampler so speed changes affect playback
     juce::ResamplingAudioSource resampleSource{&transportSource, false, 2};
 };
