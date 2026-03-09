@@ -109,5 +109,12 @@ void DJAudioPlayer::stop()
 
 double DJAudioPlayer::getPositionRelative()
 {
-    return transportSource.getCurrentPosition() /  transportSource.getLengthInSeconds(); 
+    const double lengthInSeconds = transportSource.getLengthInSeconds();
+    /** Guard against empty/unloaded transport length to avoid invalid division results. */
+    if (lengthInSeconds <= 0.0)
+    {
+        return 0.0;
+    }
+
+    return transportSource.getCurrentPosition() / lengthInSeconds;
 }

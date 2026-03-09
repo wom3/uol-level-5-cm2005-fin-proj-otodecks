@@ -9,6 +9,7 @@
 */
 
 #pragma once
+#include <array>
 #include <JuceHeader.h>
 #include "DJAudioPlayer.h"
 #include "WaveFormDisplay.h"
@@ -36,6 +37,9 @@ public juce::Timer
 
         /** Loads a track file into this deck's player and waveform display. */
         void loadTrackFile(const juce::File& file);
+
+        /** Assigns or triggers one of the 8 hot cues based on button index (0..7). */
+        void handleHotCuePressed(int cueIndex);
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
@@ -43,6 +47,20 @@ public juce::Timer
         juce::Slider gainSlider;
         juce::Slider speedSlider;
         juce::Slider posSlider;
+        std::array<juce::TextButton, 8> hotCueButtons{
+          juce::TextButton{"HC1"},
+          juce::TextButton{"HC2"},
+          juce::TextButton{"HC3"},
+          juce::TextButton{"HC4"},
+          juce::TextButton{"HC5"},
+          juce::TextButton{"HC6"},
+          juce::TextButton{"HC7"},
+          juce::TextButton{"HC8"}
+        };
+        std::array<double, 8> hotCuePositions{
+          -1.0, -1.0, -1.0, -1.0,
+          -1.0, -1.0, -1.0, -1.0
+        };
         std::unique_ptr<juce::FileChooser> fChooser;
         DJAudioPlayer* player;
         WaveFormDisplay waveFormDisplay;
