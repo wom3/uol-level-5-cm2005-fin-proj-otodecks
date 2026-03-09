@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "DJAudioPlayer.h"
 #include "DeckGUI.h"
+#include "PlaylistComponent.h"
 
 //==============================================================================
 /*
@@ -46,6 +47,7 @@ private:
     
     std::unique_ptr<juce::FileChooser> fChooser;
     juce::AudioThumbnail audioThumb;
+    PlaylistComponent playlistComponent; 
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

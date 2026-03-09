@@ -1,5 +1,4 @@
 /*
-
   ==============================================================================
 
 
@@ -30,7 +29,7 @@
 
 
 
-class PlaylistComponent : public juce::Component, public juce::TableListBoxModel
+class PlaylistComponent : public juce::Component, public juce::TableListBoxModel, public juce::Button::Listener
 
 {
 
@@ -62,8 +61,14 @@ class PlaylistComponent : public juce::Component, public juce::TableListBoxModel
                    int width,
                    int height,
                    bool rowIsSelected) override;
-
     
+    juce::Component* refreshComponentForCell (int rowNumber,
+                                               int columnId,
+                                               bool isRowSelected,
+                                               juce::Component *existingComponentToUpdate
+                                               ) override;
+
+    void buttonClicked(juce::Button* button) override;
 
     int getNumRows() override;
 
