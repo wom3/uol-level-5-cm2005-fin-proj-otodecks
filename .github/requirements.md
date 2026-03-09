@@ -39,8 +39,7 @@ remixing). These hot cue buttons are very useful for the DJ to do live mixing of
 
 R4: Develop a three-band equaliser (EQ) mixer (i.e., high, mid and low) panel for each deck
 using the DSP module within the JUCE library.
-• R4A: Create three knobs or sliders to allow the user to adjust the equaliser value of
-a track to high, medium and low.
+• R4A: Create three knobs or sliders to allow the user to adjust the equaliser value of a track to high, medium and low.
 • R4B: Persist the track’s original and the last adjusted EQ setting information when
 closing and re-opening the application.
 

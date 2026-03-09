@@ -23,6 +23,13 @@ void DJAudioPlayer::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 {
     transportSource.prepareToPlay(samplesPerBlockExpected,sampleRate);
     resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+
+    /** Initialise EQ filters for the current device sample rate before processing audio. */
+    currentSampleRate = sampleRate;
+    lowEqFilter.reset();
+    midEqFilter.reset();
+    highEqFilter.reset();
+    updateEqFilters();
 }
 
 void DJAudioPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -32,7 +39,19 @@ void DJAudioPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         bufferToFill.clearActiveBufferRegion();
         return;
     }
+
     resampleSource.getNextAudioBlock(bufferToFill);
+
+    /** Apply low/mid/high EQ filters in sequence to each output channel. */
+    const juce::SpinLock::ScopedLockType filterLock(eqLock);
+    for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+    {
+        float* channelData = bufferToFill.buffer->getWritePointer(channel,
+                                                                  bufferToFill.startSample);
+        lowEqFilter.processSamples(channelData, bufferToFill.numSamples);
+        midEqFilter.processSamples(channelData, bufferToFill.numSamples);
+        highEqFilter.processSamples(channelData, bufferToFill.numSamples);
+    }
 }
 
 void DJAudioPlayer::releaseResources()
@@ -97,6 +116,27 @@ void DJAudioPlayer::setPositionRelative(double pos)
     }
 }
 
+void DJAudioPlayer::setLowEqGainDb(double gainDb)
+{
+    /** Clamp UI-provided EQ range to a practical live-mixing band. */
+    lowEqGainDb = juce::jlimit(-24.0, 24.0, gainDb);
+    updateEqFilters();
+}
+
+void DJAudioPlayer::setMidEqGainDb(double gainDb)
+{
+    /** Clamp UI-provided EQ range to a practical live-mixing band. */
+    midEqGainDb = juce::jlimit(-24.0, 24.0, gainDb);
+    updateEqFilters();
+}
+
+void DJAudioPlayer::setHighEqGainDb(double gainDb)
+{
+    /** Clamp UI-provided EQ range to a practical live-mixing band. */
+    highEqGainDb = juce::jlimit(-24.0, 24.0, gainDb);
+    updateEqFilters();
+}
+
 void DJAudioPlayer::start()
 {
     transportSource.start();
@@ -117,4 +157,27 @@ double DJAudioPlayer::getPositionRelative()
     }
 
     return transportSource.getCurrentPosition() / lengthInSeconds;
+}
+
+void DJAudioPlayer::updateEqFilters()
+{
+    /** Build three-band EQ filters: low shelf, mid peak, and high shelf. */
+    const juce::SpinLock::ScopedLockType filterLock(eqLock);
+
+    const float lowGain = static_cast<float>(juce::Decibels::decibelsToGain(lowEqGainDb));
+    const float midGain = static_cast<float>(juce::Decibels::decibelsToGain(midEqGainDb));
+    const float highGain = static_cast<float>(juce::Decibels::decibelsToGain(highEqGainDb));
+
+    lowEqFilter.setCoefficients(juce::IIRCoefficients::makeLowShelf(currentSampleRate,
+                                                                    200.0,
+                                                                    0.707,
+                                                                    lowGain));
+    midEqFilter.setCoefficients(juce::IIRCoefficients::makePeakFilter(currentSampleRate,
+                                                                      1000.0,
+                                                                      1.0,
+                                                                      midGain));
+    highEqFilter.setCoefficients(juce::IIRCoefficients::makeHighShelf(currentSampleRate,
+                                                                      4000.0,
+                                                                      0.707,
+                                                                      highGain));
 }

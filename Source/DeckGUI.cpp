@@ -13,6 +13,17 @@
 
 #include <cmath>
 
+namespace
+{
+/** Builds an empty hot-cue JSON state object with a tracks array. */
+juce::var createEmptyHotCueState()
+{
+    auto stateObject = std::make_unique<juce::DynamicObject>();
+    stateObject->setProperty("tracks", juce::var(juce::Array<juce::var>{}));
+    return juce::var(stateObject.release());
+}
+}
+
 DeckGUI::DeckGUI(DJAudioPlayer* _player,
                  juce::AudioFormatManager & formatManagerToUse,
                  juce::AudioThumbnailCache & cacheToUse
@@ -25,6 +36,9 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     addAndMakeVisible(gainSlider);
     addAndMakeVisible(speedSlider);
     addAndMakeVisible(posSlider);
+    addAndMakeVisible(lowEqSlider);
+    addAndMakeVisible(midEqSlider);
+    addAndMakeVisible(highEqSlider);
     addAndMakeVisible(setCueModeButton);
     addAndMakeVisible(clearHotCuesButton);
     addAndMakeVisible(waveFormDisplay);
@@ -46,6 +60,14 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
 
     posSlider.setRange(0, 1);
 
+    /** Three-band EQ sliders: 0 dB is neutral, negatives cut and positives boost. */
+    lowEqSlider.setRange(-24.0, 24.0, 0.1);
+    lowEqSlider.setValue(0.0);
+    midEqSlider.setRange(-24.0, 24.0, 0.1);
+    midEqSlider.setValue(0.0);
+    highEqSlider.setRange(-24.0, 24.0, 0.1);
+    highEqSlider.setValue(0.0);
+
     playButton.addListener(this);
     stopButton.addListener(this);
     loadButton.addListener(this);
@@ -54,6 +76,9 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     gainSlider.addListener(this);
     speedSlider.addListener(this);
     posSlider.addListener(this);
+    lowEqSlider.addListener(this);
+    midEqSlider.addListener(this);
+    highEqSlider.addListener(this);
 
     /** Toggle mode allows individual hot-cue overwrite without affecting other cues. */
     setCueModeButton.setClickingTogglesState(true);
@@ -81,7 +106,7 @@ void DeckGUI::paint (juce::Graphics& g)
 void DeckGUI::resized()
 {
     /** Reserve two rows for 8 hot cues while preserving existing deck controls. */
-    const int rowH = getHeight() / 13;
+    const int rowH = getHeight() / 16;
     const int cueButtonWidth = getWidth() / 4;
 
     playButton.setBounds(0, 0, getWidth(), rowH);
@@ -89,7 +114,10 @@ void DeckGUI::resized()
     gainSlider.setBounds(0, rowH * 2, getWidth(), rowH);
     speedSlider.setBounds(0, rowH * 3, getWidth(), rowH);
     posSlider.setBounds(0, rowH * 4, getWidth(), rowH);
-    waveFormDisplay.setBounds(0, rowH * 5, getWidth(), rowH * 3);
+    lowEqSlider.setBounds(0, rowH * 5, getWidth(), rowH);
+    midEqSlider.setBounds(0, rowH * 6, getWidth(), rowH);
+    highEqSlider.setBounds(0, rowH * 7, getWidth(), rowH);
+    waveFormDisplay.setBounds(0, rowH * 8, getWidth(), rowH * 3);
 
     /** Lay out hot cues as a 2x4 grid beneath the waveform display. */
     for (int cueIndex = 0; cueIndex < static_cast<int>(hotCueButtons.size()); ++cueIndex)
@@ -97,14 +125,14 @@ void DeckGUI::resized()
         const int cueRow = cueIndex / 4;
         const int cueColumn = cueIndex % 4;
         hotCueButtons[static_cast<size_t>(cueIndex)].setBounds(cueColumn * cueButtonWidth,
-                                                               (rowH * 8) + (cueRow * rowH),
+                                                               (rowH * 11) + (cueRow * rowH),
                                                                cueButtonWidth,
                                                                rowH);
     }
 
-    setCueModeButton.setBounds(0, rowH * 10, getWidth(), rowH);
-    clearHotCuesButton.setBounds(0, rowH * 11, getWidth(), rowH);
-    loadButton.setBounds(0, rowH * 12, getWidth(), rowH);
+    setCueModeButton.setBounds(0, rowH * 13, getWidth(), rowH);
+    clearHotCuesButton.setBounds(0, rowH * 14, getWidth(), rowH);
+    loadButton.setBounds(0, rowH * 15, getWidth(), rowH);
 }
 
 void DeckGUI::buttonClicked(juce::Button* button)
@@ -178,6 +206,21 @@ void DeckGUI::sliderValueChanged (juce::Slider *slider)
     {
     player->setPositionRelative(slider->getValue());
     }
+    if (slider == &lowEqSlider)
+    {
+    /** Route low-band EQ control to player DSP processing. */
+    player->setLowEqGainDb(slider->getValue());
+    }
+    if (slider == &midEqSlider)
+    {
+    /** Route mid-band EQ control to player DSP processing. */
+    player->setMidEqGainDb(slider->getValue());
+    }
+    if (slider == &highEqSlider)
+    {
+    /** Route high-band EQ control to player DSP processing. */
+    player->setHighEqGainDb(slider->getValue());
+    }
 }
 
 bool DeckGUI::isInterestedInFileDrag (const juce::StringArray &files)
@@ -217,6 +260,10 @@ void DeckGUI::loadTrackFile(const juce::File& file)
     const juce::URL audioURL{file};
     player->loadURL(audioURL);
     waveFormDisplay.loadURL(audioURL);
+
+    /** Track identity is used as the key for saving/loading per-track hot cues. */
+    currentTrackPath = file.getFullPathName();
+    loadHotCuesForCurrentTrack();
 }
 
 void DeckGUI::handleHotCuePressed(int cueIndex)
@@ -235,7 +282,9 @@ void DeckGUI::handleHotCuePressed(int cueIndex)
     {
         /** R3B: overwrite only the selected cue with the current playhead position. */
         hotCuePositions[static_cast<size_t>(cueIndex)] = currentPosition;
-        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1) + "*");
+        refreshHotCueButtonLabels();
+        /** Persist modified cue state for the active track (R3D). */
+        saveHotCuesForCurrentTrack();
         return;
     }
 
@@ -249,7 +298,9 @@ void DeckGUI::handleHotCuePressed(int cueIndex)
     if (hasValidCurrentPosition)
     {
         hotCuePositions[static_cast<size_t>(cueIndex)] = currentPosition;
-        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1) + "*");
+        refreshHotCueButtonLabels();
+        /** Persist modified cue state for the active track (R3D). */
+        saveHotCuesForCurrentTrack();
     }
 }
 
@@ -259,8 +310,168 @@ void DeckGUI::clearAllHotCues()
     for (int cueIndex = 0; cueIndex < static_cast<int>(hotCuePositions.size()); ++cueIndex)
     {
         hotCuePositions[static_cast<size_t>(cueIndex)] = -1.0;
-        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1));
     }
+
+    refreshHotCueButtonLabels();
+    /** Persist cleared cue state for the active track (R3D). */
+    saveHotCuesForCurrentTrack();
+}
+
+void DeckGUI::refreshHotCueButtonLabels()
+{
+    /** Show '*' suffix for cues that are currently assigned on this track. */
+    for (int cueIndex = 0; cueIndex < static_cast<int>(hotCuePositions.size()); ++cueIndex)
+    {
+        const bool isAssigned = hotCuePositions[static_cast<size_t>(cueIndex)] >= 0.0;
+        const auto baseLabel = "HC" + juce::String(cueIndex + 1);
+        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText(isAssigned ? baseLabel + "*" : baseLabel);
+    }
+}
+
+juce::File DeckGUI::getHotCueStateFile() const
+{
+    /** Store hot-cue data in app-data directory so cues survive app restarts. */
+    const auto appDataDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                .getChildFile("OtoDecks");
+    appDataDir.createDirectory();
+    return appDataDir.getChildFile("hot_cues.json");
+}
+
+void DeckGUI::loadHotCuesForCurrentTrack()
+{
+    /** Default to no cues when there is no saved state for the current track. */
+    hotCuePositions.fill(-1.0);
+
+    if (currentTrackPath.isEmpty())
+    {
+        refreshHotCueButtonLabels();
+        return;
+    }
+
+    const auto stateFile = getHotCueStateFile();
+    if (!stateFile.existsAsFile())
+    {
+        refreshHotCueButtonLabels();
+        return;
+    }
+
+    const auto parsedState = juce::JSON::parse(stateFile.loadFileAsString());
+    const auto* stateObject = parsedState.getDynamicObject();
+    if (stateObject == nullptr)
+    {
+        refreshHotCueButtonLabels();
+        return;
+    }
+
+    const auto tracksVar = stateObject->getProperty("tracks");
+    const auto* tracks = tracksVar.getArray();
+    if (tracks == nullptr)
+    {
+        refreshHotCueButtonLabels();
+        return;
+    }
+
+    for (const auto& trackEntry : *tracks)
+    {
+        const auto* trackObject = trackEntry.getDynamicObject();
+        if (trackObject == nullptr)
+        {
+            continue;
+        }
+
+        if (trackObject->getProperty("path").toString() != currentTrackPath)
+        {
+            continue;
+        }
+
+        const auto cuesVar = trackObject->getProperty("cues");
+        const auto* cueArray = cuesVar.getArray();
+        if (cueArray == nullptr)
+        {
+            break;
+        }
+
+        for (int cueIndex = 0; cueIndex < static_cast<int>(hotCuePositions.size()) && cueIndex < cueArray->size(); ++cueIndex)
+        {
+            const double cueValue = cueArray->getReference(cueIndex);
+            hotCuePositions[static_cast<size_t>(cueIndex)] = (cueValue >= 0.0 && cueValue <= 1.0) ? cueValue : -1.0;
+        }
+        break;
+    }
+
+    refreshHotCueButtonLabels();
+}
+
+void DeckGUI::saveHotCuesForCurrentTrack() const
+{
+    /** Skip persistence if no track has been loaded onto this deck yet. */
+    if (currentTrackPath.isEmpty())
+    {
+        return;
+    }
+
+    const auto stateFile = getHotCueStateFile();
+    juce::var state = createEmptyHotCueState();
+
+    if (stateFile.existsAsFile())
+    {
+        const auto parsed = juce::JSON::parse(stateFile.loadFileAsString());
+        if (parsed.getDynamicObject() != nullptr)
+        {
+            state = parsed;
+        }
+    }
+
+    auto* stateObject = state.getDynamicObject();
+    if (stateObject == nullptr)
+    {
+        state = createEmptyHotCueState();
+        stateObject = state.getDynamicObject();
+    }
+
+    auto tracksVar = stateObject->getProperty("tracks");
+    auto* tracks = tracksVar.getArray();
+    if (tracks == nullptr)
+    {
+        stateObject->setProperty("tracks", juce::var(juce::Array<juce::var>{}));
+        tracksVar = stateObject->getProperty("tracks");
+        tracks = tracksVar.getArray();
+    }
+
+    if (tracks == nullptr)
+    {
+        return;
+    }
+
+    juce::Array<juce::var> cueArray;
+    for (const auto cue : hotCuePositions)
+    {
+        cueArray.add((cue >= 0.0 && cue <= 1.0) ? cue : -1.0);
+    }
+
+    auto updatedTrackObject = std::make_unique<juce::DynamicObject>();
+    updatedTrackObject->setProperty("path", currentTrackPath);
+    updatedTrackObject->setProperty("cues", juce::var(cueArray));
+    const juce::var updatedTrackVar(updatedTrackObject.release());
+
+    bool replacedExisting = false;
+    for (int index = 0; index < tracks->size(); ++index)
+    {
+        const auto* existingObject = tracks->getReference(index).getDynamicObject();
+        if (existingObject != nullptr && existingObject->getProperty("path").toString() == currentTrackPath)
+        {
+            tracks->set(index, updatedTrackVar);
+            replacedExisting = true;
+            break;
+        }
+    }
+
+    if (!replacedExisting)
+    {
+        tracks->add(updatedTrackVar);
+    }
+
+    stateFile.replaceWithText(juce::JSON::toString(state, true));
 }
 
 void DeckGUI::timerCallback()

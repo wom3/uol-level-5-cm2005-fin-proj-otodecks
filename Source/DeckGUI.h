@@ -43,6 +43,18 @@ public juce::Timer
 
         /** Clears all stored hot cues and resets related cue button labels. */
         void clearAllHotCues();
+
+        /** Applies hot-cue button labels based on whether each cue slot is assigned. */
+        void refreshHotCueButtonLabels();
+
+        /** Returns the file path used to persist hot-cue state across app sessions. */
+        juce::File getHotCueStateFile() const;
+
+        /** Loads hot cues for the currently loaded track from persistent storage. */
+        void loadHotCuesForCurrentTrack();
+
+        /** Saves hot cues for the currently loaded track into persistent storage. */
+        void saveHotCuesForCurrentTrack() const;
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
@@ -50,6 +62,9 @@ public juce::Timer
         juce::Slider gainSlider;
         juce::Slider speedSlider;
         juce::Slider posSlider;
+        juce::Slider lowEqSlider;
+        juce::Slider midEqSlider;
+        juce::Slider highEqSlider;
         juce::TextButton setCueModeButton{"Set Cue Mode"};
         juce::TextButton clearHotCuesButton{"Clear All Cues"};
         std::array<juce::TextButton, 8> hotCueButtons{
@@ -66,6 +81,7 @@ public juce::Timer
           -1.0, -1.0, -1.0, -1.0,
           -1.0, -1.0, -1.0, -1.0
         };
+        juce::String currentTrackPath;
         std::unique_ptr<juce::FileChooser> fChooser;
         DJAudioPlayer* player;
         WaveFormDisplay waveFormDisplay;
