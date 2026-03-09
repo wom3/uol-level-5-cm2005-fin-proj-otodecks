@@ -65,6 +65,8 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     addAndMakeVisible(lowEqLabel);
     addAndMakeVisible(midEqLabel);
     addAndMakeVisible(highEqLabel);
+    addAndMakeVisible(bpmLabel);
+    addAndMakeVisible(bpmValueLabel);
 
     addAndMakeVisible(setCueModeButton);
     addAndMakeVisible(clearHotCuesButton);
@@ -116,6 +118,12 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     midEqLabel.setJustificationType(juce::Justification::centredLeft);
     highEqLabel.setText("HIGH (Treble)", juce::dontSendNotification);
     highEqLabel.setJustificationType(juce::Justification::centredLeft);
+
+    /** Display estimated BPM from loaded track analysis. */
+    bpmLabel.setText("BPM", juce::dontSendNotification);
+    bpmLabel.setJustificationType(juce::Justification::centredLeft);
+    bpmValueLabel.setText("--", juce::dontSendNotification);
+    bpmValueLabel.setJustificationType(juce::Justification::centredLeft);
 
     playButton.addListener(this);
     stopButton.addListener(this);
@@ -186,7 +194,10 @@ void DeckGUI::resized()
     highEqLabel.setBounds(0, rowH * 7, labelWidth, rowH);
     highEqSlider.setBounds(labelWidth, rowH * 7, getWidth() - labelWidth, rowH);
 
-    waveFormDisplay.setBounds(0, rowH * 8, getWidth(), rowH * 3);
+    bpmLabel.setBounds(0, rowH * 8, labelWidth, rowH);
+    bpmValueLabel.setBounds(labelWidth, rowH * 8, getWidth() - labelWidth, rowH);
+
+    waveFormDisplay.setBounds(0, rowH * 9, getWidth(), rowH * 2);
 
     /** Lay out hot cues as a 2x4 grid beneath the waveform display. */
     for (int cueIndex = 0; cueIndex < static_cast<int>(hotCueButtons.size()); ++cueIndex)
@@ -272,6 +283,8 @@ void DeckGUI::sliderValueChanged(juce::Slider* slider)
     if (slider == &speedSlider)
     {
         player->setSpeed(slider->getValue());
+        /** Update displayed BPM to reflect effective tempo after speed adjustment. */
+        refreshDisplayedBpm();
     }
 
     if (slider == &posSlider)
@@ -342,6 +355,8 @@ void DeckGUI::loadTrackFile(const juce::File& file)
     currentTrackPath = file.getFullPathName();
     loadHotCuesForCurrentTrack();
     loadEqSettingsForCurrentTrack();
+    /** Visualize analyzed/effective BPM for this track in the deck UI. */
+    refreshDisplayedBpm();
 
     /** Persist last loaded track path so this deck can restore it on next launch. */
     saveCurrentTrackState();
@@ -850,4 +865,13 @@ void DeckGUI::saveEqSettingsForCurrentTrack() const
 void DeckGUI::timerCallback()
 {
     waveFormDisplay.setPositionRelative(player->getPositionRelative());
+}
+
+void DeckGUI::refreshDisplayedBpm()
+{
+    /** Effective BPM scales with speed ratio; EQ changes do not alter BPM. */
+    const double baseBpm = player->getEstimatedBpm();
+    const double effectiveBpm = baseBpm * player->getSpeedRatio();
+    bpmValueLabel.setText(effectiveBpm > 0.0 ? juce::String(effectiveBpm, 1) : juce::String("--"),
+                          juce::dontSendNotification);
 }

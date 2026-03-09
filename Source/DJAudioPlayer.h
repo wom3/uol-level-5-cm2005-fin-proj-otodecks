@@ -40,6 +40,12 @@ class DJAudioPlayer : public juce::AudioSource
     
     /** get the relative position of the playhead */
     double getPositionRelative(); 
+
+    /** Returns estimated BPM for currently loaded track (0 if unavailable). */
+    double getEstimatedBpm() const;
+
+    /** Returns current playback speed ratio (1.0 = normal speed). */
+    double getSpeedRatio() const;
     
     void start();
     void stop();
@@ -52,6 +58,9 @@ class DJAudioPlayer : public juce::AudioSource
     // Wrap transportSource with a resampler so speed changes affect playback
     juce::ResamplingAudioSource resampleSource{&transportSource, false, 2};
 
+    /** Estimates BPM from audio reader content using an onset/autocorrelation method. */
+    double estimateBpmFromReader(juce::AudioFormatReader& reader) const;
+
     /** Rebuilds all EQ filter coefficients from current sample rate and gain values. */
     void updateEqFilters();
 
@@ -63,4 +72,6 @@ class DJAudioPlayer : public juce::AudioSource
     juce::IIRFilter lowEqFilter;
     juce::IIRFilter midEqFilter;
     juce::IIRFilter highEqFilter;
+    double estimatedBpm{0.0};
+    double speedRatio{1.0};
 };

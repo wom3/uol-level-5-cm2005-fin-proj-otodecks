@@ -79,6 +79,9 @@ public juce::Timer
 
         /** Applies EQ values to both the sliders and the audio player DSP state. */
         void applyEqValues(double lowDb, double midDb, double highDb);
+
+        /** Updates BPM text to show effective BPM based on current speed ratio. */
+        void refreshDisplayedBpm();
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
@@ -95,6 +98,8 @@ public juce::Timer
         juce::Label lowEqLabel;
         juce::Label midEqLabel;
         juce::Label highEqLabel;
+        juce::Label bpmLabel;
+        juce::Label bpmValueLabel;
         juce::TextButton setCueModeButton{"Set Cue Mode"};
         juce::TextButton clearHotCuesButton{"Clear All Cues"};
         std::array<juce::TextButton, 8> hotCueButtons{
