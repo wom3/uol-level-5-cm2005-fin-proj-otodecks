@@ -33,6 +33,9 @@ public juce::Timer
         bool isInterestedInFileDrag (const juce::StringArray &files) override;
         void filesDropped (const juce::StringArray &files, int x, int y) override;
         void timerCallback() override;
+
+        /** Loads a track file into this deck's player and waveform display. */
+        void loadTrackFile(const juce::File& file);
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};

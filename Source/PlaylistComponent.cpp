@@ -15,8 +15,10 @@ PlaylistComponent::PlaylistComponent(juce::AudioFormatManager& formatManagerToUs
     : formatManager(formatManagerToUse)
 {
     /** Configure table columns to show required R2A metadata. */
-    tableComponent.getHeader().addColumn("Track title", 1, 420);
-    tableComponent.getHeader().addColumn("Duration", 2, 120);
+    tableComponent.getHeader().addColumn("Track title", 1, 340);
+    tableComponent.getHeader().addColumn("Duration", 2, 100);
+    tableComponent.getHeader().addColumn("Deck 1", 3, 100);
+    tableComponent.getHeader().addColumn("Deck 2", 4, 100);
     tableComponent.setModel(this);
 
     /** Import button loads one or more tracks into the music library table. */
@@ -94,6 +96,30 @@ void PlaylistComponent::paintCell(juce::Graphics& g,
     }
 }
 
+juce::Component* PlaylistComponent::refreshComponentForCell(int rowNumber,
+                                                            int columnId,
+                                                            bool isRowSelected,
+                                                            juce::Component* existingComponentToUpdate)
+{
+    juce::ignoreUnused(isRowSelected);
+
+    if (columnId != 3 && columnId != 4)
+    {
+        return nullptr;
+    }
+
+    auto* button = dynamic_cast<juce::TextButton*>(existingComponentToUpdate);
+    if (button == nullptr)
+    {
+        button = new juce::TextButton(columnId == 3 ? "Load" : "Load");
+        button->addListener(this);
+    }
+
+    button->setButtonText("Load");
+    button->setComponentID(juce::String(rowNumber) + "|" + juce::String(columnId));
+    return button;
+}
+
 int PlaylistComponent::getNumRows()
 {
     return static_cast<int>(libraryTracks.size());
@@ -101,26 +127,53 @@ int PlaylistComponent::getNumRows()
 
 void PlaylistComponent::buttonClicked(juce::Button* button)
 {
-    if (button != &importButton)
+    if (button == &importButton)
+    {
+        /** Open an async chooser that supports selecting multiple audio files. */
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Select one or more audio files...",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.wav;*.mp3;*.aiff;*.aif;*.flac");
+
+        const auto flags = juce::FileBrowserComponent::openMode
+                           | juce::FileBrowserComponent::canSelectFiles
+                           | juce::FileBrowserComponent::canSelectMultipleItems;
+
+        fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser)
+        {
+            /** Populate library rows from the selected files. */
+            addTracksFromFiles(chooser.getResults());
+        });
+        return;
+    }
+
+    /** Route per-row load button clicks to deck 1/2 using encoded component id. */
+    const auto id = button->getComponentID();
+    const auto parts = juce::StringArray::fromTokens(id, "|", "");
+    if (parts.size() != 2)
     {
         return;
     }
 
-    /** Open an async chooser that supports selecting multiple audio files. */
-    fileChooser = std::make_unique<juce::FileChooser>(
-        "Select one or more audio files...",
-        juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-        "*.wav;*.mp3;*.aiff;*.aif;*.flac");
-
-    const auto flags = juce::FileBrowserComponent::openMode
-                       | juce::FileBrowserComponent::canSelectFiles
-                       | juce::FileBrowserComponent::canSelectMultipleItems;
-
-    fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser)
+    const int rowNumber = parts[0].getIntValue();
+    const int columnId = parts[1].getIntValue();
+    if (rowNumber < 0 || rowNumber >= getNumRows())
     {
-        /** Populate library rows from the selected files. */
-        addTracksFromFiles(chooser.getResults());
-    });
+        return;
+    }
+
+    if (trackLoadRequestHandler == nullptr)
+    {
+        return;
+    }
+
+    const int deckIndex = (columnId == 3) ? 1 : (columnId == 4 ? 2 : 0);
+    if (deckIndex == 0)
+    {
+        return;
+    }
+
+    trackLoadRequestHandler(libraryTracks[static_cast<size_t>(rowNumber)].file, deckIndex);
 }
 
 void PlaylistComponent::addTracksFromFiles(const juce::Array<juce::File>& files)
@@ -166,4 +219,9 @@ juce::String PlaylistComponent::formatDuration(double seconds) const
     const int minutes = totalSeconds / 60;
     const int remainingSeconds = totalSeconds % 60;
     return juce::String::formatted("%d:%02d", minutes, remainingSeconds);
+}
+
+void PlaylistComponent::setTrackLoadRequestHandler(std::function<void(const juce::File&, int)> handler)
+{
+    trackLoadRequestHandler = std::move(handler);
 }

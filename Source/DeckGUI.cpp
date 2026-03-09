@@ -99,9 +99,7 @@ void DeckGUI::buttonClicked(juce::Button* button)
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
-                juce::URL audioURL{ result };
-                player->loadURL(audioURL);
-                waveFormDisplay.loadURL(audioURL);
+                loadTrackFile(result);
             }
         });
     }
@@ -142,10 +140,24 @@ bool DeckGUI::isInterestedInFileDrag (const juce::StringArray &files)
 void DeckGUI::filesDropped (const juce::StringArray &files, int x, int y)
 {
     std::cout << "DeckGUI::filesDropped" << std::endl;
+    juce::ignoreUnused(x, y);
     if (files.size() == 1)
     {
-        player->loadURL(juce::URL{juce::File{files[0]}});
+        loadTrackFile(juce::File{files[0]});
     }
+}
+
+void DeckGUI::loadTrackFile(const juce::File& file)
+{
+    /** Single entry point for loading audio into both transport and waveform UI. */
+    if (!file.existsAsFile())
+    {
+        return;
+    }
+
+    const juce::URL audioURL{file};
+    player->loadURL(audioURL);
+    waveFormDisplay.loadURL(audioURL);
 }
 
 void DeckGUI::timerCallback()

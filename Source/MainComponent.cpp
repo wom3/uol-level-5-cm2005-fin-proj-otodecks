@@ -25,6 +25,19 @@ MainComponent::MainComponent()
     addAndMakeVisible(deck1);
     addAndMakeVisible(deck2);
     addAndMakeVisible(playlistComponent);
+
+    /** Connect playlist load actions to deck-specific track loading for R2B. */
+    playlistComponent.setTrackLoadRequestHandler([this](const juce::File& file, int deckIndex)
+    {
+        if (deckIndex == 1)
+        {
+            deck1.loadTrackFile(file);
+        }
+        else if (deckIndex == 2)
+        {
+            deck2.loadTrackFile(file);
+        }
+    });
     
     formatManager.registerBasicFormats();
 }

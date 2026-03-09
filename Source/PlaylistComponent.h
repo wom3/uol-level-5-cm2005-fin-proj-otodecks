@@ -22,6 +22,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <functional>
 #include <vector>
 
 class PlaylistComponent : public juce::Component,
@@ -29,6 +30,7 @@ class PlaylistComponent : public juce::Component,
               public juce::Button::Listener
 {
 public:
+  /** Creates the playlist UI using a shared format manager for metadata extraction. */
   PlaylistComponent(juce::AudioFormatManager& formatManagerToUse);
   ~PlaylistComponent() override;
 
@@ -48,8 +50,16 @@ public:
            int height,
            bool rowIsSelected) override;
 
+  juce::Component* refreshComponentForCell(int rowNumber,
+                       int columnId,
+                       bool isRowSelected,
+                       juce::Component* existingComponentToUpdate) override;
+
   int getNumRows() override;
   void buttonClicked(juce::Button* button) override;
+
+  /** Sets callback used to load a selected library track into deck 1 or deck 2. */
+  void setTrackLoadRequestHandler(std::function<void(const juce::File&, int)> handler);
 
 private:
   /** Stores one imported library track with metadata shown in the playlist table. */
@@ -70,6 +80,7 @@ private:
   juce::TableListBox tableComponent;
   std::vector<LibraryTrack> libraryTracks;
   std::unique_ptr<juce::FileChooser> fileChooser;
+  std::function<void(const juce::File&, int)> trackLoadRequestHandler;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlaylistComponent)
 };
