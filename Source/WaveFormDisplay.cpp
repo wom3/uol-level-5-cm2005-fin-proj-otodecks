@@ -11,7 +11,9 @@
 #include <JuceHeader.h>
 #include "WaveFormDisplay.h"
 
-WaveFormDisplay::WaveFormDisplay()
+WaveFormDisplay::WaveFormDisplay(juce::AudioFormatManager & formatManagerToUse,
+                                 juce::AudioThumbnailCache & cacheToUse) :
+                                 audioThumb(1000 , formatManagerToUse, cacheToUse)
 {
 }
 
@@ -33,4 +35,10 @@ void WaveFormDisplay::paint (juce::Graphics& g)
 void WaveFormDisplay::resized()
 {
     
+}
+
+void WaveFormDisplay::loadURL(juce::URL audioURL)
+{
+    audioThumb.clear();
+    fileLoaded = audioThumb.setSource(new juce::URLInputSource(audioURL));
 }

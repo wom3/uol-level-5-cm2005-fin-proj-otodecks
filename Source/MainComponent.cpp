@@ -2,6 +2,8 @@
 
 //==============================================================================
 MainComponent::MainComponent()
+    : audioThumb(1000, formatManager, thumbCache)
+
 //DeckGUI::DeckGUI(DJAudioPlayer* _player) : player(_player)
 {
     // Make sure you set the size of the component after

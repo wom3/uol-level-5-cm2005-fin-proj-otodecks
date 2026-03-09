@@ -15,12 +15,17 @@
 class WaveFormDisplay : public juce::Component
 {
     public:
-        WaveFormDisplay();
+        WaveFormDisplay(juce::AudioFormatManager & formatManagerToUse,
+                        juce::AudioThumbnailCache & cacheToUse
+                       );
         ~WaveFormDisplay();
         
         void paint (juce::Graphics&) override;
         void resized() override;
+        void loadURL(juce::URL audioURL);
         
     private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFormDisplay)
+         juce::AudioThumbnail audioThumb;
+        bool fileLoaded;
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFormDisplay)
 };

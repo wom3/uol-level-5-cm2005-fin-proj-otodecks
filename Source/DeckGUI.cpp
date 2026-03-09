@@ -11,7 +11,11 @@
 #include "DeckGUI.h"
 #include <JuceHeader.h>
 
-DeckGUI::DeckGUI(DJAudioPlayer* _player) : player(_player)
+DeckGUI::DeckGUI(DJAudioPlayer* _player,
+                 juce::AudioFormatManager & formatManagerToUse,
+                 juce::AudioThumbnailCache & cacheToUse
+                 ) : player(_player),
+                     waveFormDisplay(formatManagerToUse, cacheToUse)
 {
     addAndMakeVisible(playButton);
     addAndMakeVisible(stopButton);
