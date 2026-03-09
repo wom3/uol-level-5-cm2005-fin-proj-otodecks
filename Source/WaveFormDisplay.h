@@ -12,7 +12,8 @@
 
 #include <JuceHeader.h>
 
-class WaveFormDisplay : public juce::Component
+class WaveFormDisplay : public juce::Component,
+                         public juce::ChangeListener
 {
     public:
         WaveFormDisplay(juce::AudioFormatManager & formatManagerToUse,
@@ -22,6 +23,7 @@ class WaveFormDisplay : public juce::Component
         
         void paint (juce::Graphics&) override;
         void resized() override;
+        void changeListenerCallback(juce::ChangeBroadcaster *source) override;
         void loadURL(juce::URL audioURL);
          
     private:

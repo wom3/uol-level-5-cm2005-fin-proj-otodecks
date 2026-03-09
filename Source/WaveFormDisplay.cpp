@@ -13,8 +13,10 @@
 
 WaveFormDisplay::WaveFormDisplay(juce::AudioFormatManager & formatManagerToUse,
                                  juce::AudioThumbnailCache & cacheToUse) :
-                                 audioThumb(1000 , formatManagerToUse, cacheToUse)
+                                 audioThumb(1000 , formatManagerToUse, cacheToUse),
+                                 fileLoaded(false)
 {
+    audioThumb.addChangeListener(this);
 }
 
 WaveFormDisplay::~WaveFormDisplay()
@@ -59,4 +61,10 @@ void WaveFormDisplay::loadURL(juce::URL audioURL)
     {
         std::cout << "wfd: not loaded" << std::endl;
     }
+}
+
+void WaveFormDisplay::changeListenerCallback (juce::ChangeBroadcaster *source)
+{
+    std::cout << "wfd: change received! " << std::endl;
+    repaint();
 }
