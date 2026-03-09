@@ -67,6 +67,18 @@ public juce::Timer
 
         /** Persists the currently loaded track path for this deck. */
         void saveCurrentTrackState() const;
+
+        /** Returns the file path used to persist per-track EQ settings. */
+        juce::File getEqStateFile() const;
+
+        /** Loads EQ settings for the currently loaded track and applies them to UI + DSP. */
+        void loadEqSettingsForCurrentTrack();
+
+        /** Saves EQ settings (original + last adjusted) for the currently loaded track. */
+        void saveEqSettingsForCurrentTrack() const;
+
+        /** Applies EQ values to both the sliders and the audio player DSP state. */
+        void applyEqValues(double lowDb, double midDb, double highDb);
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
