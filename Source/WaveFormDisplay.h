@@ -23,9 +23,9 @@ class WaveFormDisplay : public juce::Component
         void paint (juce::Graphics&) override;
         void resized() override;
         void loadURL(juce::URL audioURL);
-        
+         
     private:
-         juce::AudioThumbnail audioThumb;
+        juce::AudioThumbnail audioThumb;
         bool fileLoaded;
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveFormDisplay)
 };

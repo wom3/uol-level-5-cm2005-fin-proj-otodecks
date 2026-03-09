@@ -24,6 +24,8 @@ MainComponent::MainComponent()
     }
     addAndMakeVisible(deck1);
     addAndMakeVisible(deck2);
+    
+    formatManager.registerBasicFormats();
 }
 
 MainComponent::~MainComponent()

@@ -98,6 +98,7 @@ void DeckGUI::buttonClicked(juce::Button* button)
             {
                 juce::URL audioURL{ result };
                 player->loadURL(audioURL);
+                waveFormDisplay.loadURL(audioURL);
             }
         });
     }
