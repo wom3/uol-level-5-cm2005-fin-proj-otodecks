@@ -26,6 +26,7 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     addAndMakeVisible(speedSlider);
     addAndMakeVisible(posSlider);
     addAndMakeVisible(setCueModeButton);
+    addAndMakeVisible(clearHotCuesButton);
     addAndMakeVisible(waveFormDisplay);
     /** Create and register 8 hot-cue buttons for assign/jump interactions. */
     for (int index = 0; index < static_cast<int>(hotCueButtons.size()); ++index)
@@ -49,6 +50,7 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     stopButton.addListener(this);
     loadButton.addListener(this);
     setCueModeButton.addListener(this);
+    clearHotCuesButton.addListener(this);
     gainSlider.addListener(this);
     speedSlider.addListener(this);
     posSlider.addListener(this);
@@ -79,7 +81,7 @@ void DeckGUI::paint (juce::Graphics& g)
 void DeckGUI::resized()
 {
     /** Reserve two rows for 8 hot cues while preserving existing deck controls. */
-    const int rowH = getHeight() / 12;
+    const int rowH = getHeight() / 13;
     const int cueButtonWidth = getWidth() / 4;
 
     playButton.setBounds(0, 0, getWidth(), rowH);
@@ -101,7 +103,8 @@ void DeckGUI::resized()
     }
 
     setCueModeButton.setBounds(0, rowH * 10, getWidth(), rowH);
-    loadButton.setBounds(0, rowH * 11, getWidth(), rowH);
+    clearHotCuesButton.setBounds(0, rowH * 11, getWidth(), rowH);
+    loadButton.setBounds(0, rowH * 12, getWidth(), rowH);
 }
 
 void DeckGUI::buttonClicked(juce::Button* button)
@@ -140,6 +143,13 @@ void DeckGUI::buttonClicked(juce::Button* button)
         /** Visual feedback indicates whether cue presses will overwrite stored cue points. */
         const bool isEditMode = setCueModeButton.getToggleState();
         setCueModeButton.setButtonText(isEditMode ? "Set Cue Mode: ON" : "Set Cue Mode");
+        return;
+    }
+
+    if (button == &clearHotCuesButton)
+    {
+        /** R3C: dedicated action to clear all assigned hot cues for this deck. */
+        clearAllHotCues();
         return;
     }
 
@@ -240,6 +250,16 @@ void DeckGUI::handleHotCuePressed(int cueIndex)
     {
         hotCuePositions[static_cast<size_t>(cueIndex)] = currentPosition;
         hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1) + "*");
+    }
+}
+
+void DeckGUI::clearAllHotCues()
+{
+    /** Reset all cue slots and restore default hot-cue button labels. */
+    for (int cueIndex = 0; cueIndex < static_cast<int>(hotCuePositions.size()); ++cueIndex)
+    {
+        hotCuePositions[static_cast<size_t>(cueIndex)] = -1.0;
+        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1));
     }
 }
 

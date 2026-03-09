@@ -40,6 +40,9 @@ public juce::Timer
 
         /** Assigns or triggers one of the 8 hot cues based on button index (0..7). */
         void handleHotCuePressed(int cueIndex);
+
+        /** Clears all stored hot cues and resets related cue button labels. */
+        void clearAllHotCues();
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
@@ -48,6 +51,7 @@ public juce::Timer
         juce::Slider speedSlider;
         juce::Slider posSlider;
         juce::TextButton setCueModeButton{"Set Cue Mode"};
+        juce::TextButton clearHotCuesButton{"Clear All Cues"};
         std::array<juce::TextButton, 8> hotCueButtons{
           juce::TextButton{"HC1"},
           juce::TextButton{"HC2"},
