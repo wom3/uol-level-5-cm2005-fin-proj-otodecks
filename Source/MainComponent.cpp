@@ -44,6 +44,10 @@ MainComponent::MainComponent()
 
     /** Restore persisted library tracks now that formats are available. */
     playlistComponent.initialisePersistentState();
+
+    /** Restore last loaded track per deck so waveform/transport state returns on reopen. */
+    deck1.initialisePersistentState();
+    deck2.initialisePersistentState();
 }
 
 MainComponent::~MainComponent()

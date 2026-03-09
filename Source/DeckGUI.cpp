@@ -22,12 +22,22 @@ juce::var createEmptyHotCueState()
     stateObject->setProperty("tracks", juce::var(juce::Array<juce::var>{}));
     return juce::var(stateObject.release());
 }
+
+/** Builds an empty deck-track JSON state object with deck-specific entries. */
+juce::var createEmptyDeckTrackState()
+{
+    auto stateObject = std::make_unique<juce::DynamicObject>();
+    stateObject->setProperty("deckTracks", juce::var(juce::Array<juce::var>{}));
+    return juce::var(stateObject.release());
+}
 }
 
 DeckGUI::DeckGUI(DJAudioPlayer* _player,
+                 const juce::String& _deckStateId,
                  juce::AudioFormatManager & formatManagerToUse,
                  juce::AudioThumbnailCache & cacheToUse
-                 ) : player(_player),
+                 ) : deckStateId(_deckStateId),
+                     player(_player),
                      waveFormDisplay(formatManagerToUse, cacheToUse)
 {
     addAndMakeVisible(playButton);
@@ -36,9 +46,15 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     addAndMakeVisible(gainSlider);
     addAndMakeVisible(speedSlider);
     addAndMakeVisible(posSlider);
+    addAndMakeVisible(gainLabel);
+    addAndMakeVisible(speedLabel);
+    addAndMakeVisible(positionLabel);
     addAndMakeVisible(lowEqSlider);
     addAndMakeVisible(midEqSlider);
     addAndMakeVisible(highEqSlider);
+    addAndMakeVisible(lowEqLabel);
+    addAndMakeVisible(midEqLabel);
+    addAndMakeVisible(highEqLabel);
     addAndMakeVisible(setCueModeButton);
     addAndMakeVisible(clearHotCuesButton);
     addAndMakeVisible(waveFormDisplay);
@@ -52,21 +68,42 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
 
     gainSlider.setRange(0, 1);
     gainSlider.setValue(0.2);
+    gainSlider.setTextValueSuffix(" ");
 
     // Configure speed slider: 1.0 = normal speed
     speedSlider.setRange(0.25, 4.0, 0.0);
     speedSlider.setSkewFactorFromMidPoint(1.0);
     speedSlider.setValue(1.0);
+    speedSlider.setTextValueSuffix(" x");
 
     posSlider.setRange(0, 1);
+
+    /** Label primary deck controls for quicker live-use identification. */
+    gainLabel.setText("VOL", juce::dontSendNotification);
+    gainLabel.setJustificationType(juce::Justification::centredLeft);
+    speedLabel.setText("SPEED", juce::dontSendNotification);
+    speedLabel.setJustificationType(juce::Justification::centredLeft);
+    positionLabel.setText("POSITION", juce::dontSendNotification);
+    positionLabel.setJustificationType(juce::Justification::centredLeft);
 
     /** Three-band EQ sliders: 0 dB is neutral, negatives cut and positives boost. */
     lowEqSlider.setRange(-24.0, 24.0, 0.1);
     lowEqSlider.setValue(0.0);
+    lowEqSlider.setTextValueSuffix(" dB");
     midEqSlider.setRange(-24.0, 24.0, 0.1);
     midEqSlider.setValue(0.0);
+    midEqSlider.setTextValueSuffix(" dB");
     highEqSlider.setRange(-24.0, 24.0, 0.1);
     highEqSlider.setValue(0.0);
+    highEqSlider.setTextValueSuffix(" dB");
+
+    /** Label EQ bands so the controls are easier to identify while mixing. */
+    lowEqLabel.setText("LOW (Bass)", juce::dontSendNotification);
+    lowEqLabel.setJustificationType(juce::Justification::centredLeft);
+    midEqLabel.setText("MID", juce::dontSendNotification);
+    midEqLabel.setJustificationType(juce::Justification::centredLeft);
+    highEqLabel.setText("HIGH (Treble)", juce::dontSendNotification);
+    highEqLabel.setJustificationType(juce::Justification::centredLeft);
 
     playButton.addListener(this);
     stopButton.addListener(this);
@@ -92,6 +129,12 @@ DeckGUI::~DeckGUI()
     stopTimer();
 }
 
+void DeckGUI::initialisePersistentState()
+{
+    /** Restore this deck's last loaded track after app restart. */
+    loadCurrentTrackState();
+}
+
 void DeckGUI::paint (juce::Graphics& g)
 {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId)); // clea
@@ -108,15 +151,23 @@ void DeckGUI::resized()
     /** Reserve two rows for 8 hot cues while preserving existing deck controls. */
     const int rowH = getHeight() / 16;
     const int cueButtonWidth = getWidth() / 4;
+    const int labelWidth = 110;
 
     playButton.setBounds(0, 0, getWidth(), rowH);
     stopButton.setBounds(0, rowH, getWidth(), rowH);
-    gainSlider.setBounds(0, rowH * 2, getWidth(), rowH);
-    speedSlider.setBounds(0, rowH * 3, getWidth(), rowH);
-    posSlider.setBounds(0, rowH * 4, getWidth(), rowH);
-    lowEqSlider.setBounds(0, rowH * 5, getWidth(), rowH);
-    midEqSlider.setBounds(0, rowH * 6, getWidth(), rowH);
-    highEqSlider.setBounds(0, rowH * 7, getWidth(), rowH);
+    gainLabel.setBounds(0, rowH * 2, labelWidth, rowH);
+    gainSlider.setBounds(labelWidth, rowH * 2, getWidth() - labelWidth, rowH);
+    speedLabel.setBounds(0, rowH * 3, labelWidth, rowH);
+    speedSlider.setBounds(labelWidth, rowH * 3, getWidth() - labelWidth, rowH);
+    positionLabel.setBounds(0, rowH * 4, labelWidth, rowH);
+    posSlider.setBounds(labelWidth, rowH * 4, getWidth() - labelWidth, rowH);
+    /** Place each EQ label on the left and its slider on the right. */
+    lowEqLabel.setBounds(0, rowH * 5, labelWidth, rowH);
+    lowEqSlider.setBounds(labelWidth, rowH * 5, getWidth() - labelWidth, rowH);
+    midEqLabel.setBounds(0, rowH * 6, labelWidth, rowH);
+    midEqSlider.setBounds(labelWidth, rowH * 6, getWidth() - labelWidth, rowH);
+    highEqLabel.setBounds(0, rowH * 7, labelWidth, rowH);
+    highEqSlider.setBounds(labelWidth, rowH * 7, getWidth() - labelWidth, rowH);
     waveFormDisplay.setBounds(0, rowH * 8, getWidth(), rowH * 3);
 
     /** Lay out hot cues as a 2x4 grid beneath the waveform display. */
@@ -264,6 +315,9 @@ void DeckGUI::loadTrackFile(const juce::File& file)
     /** Track identity is used as the key for saving/loading per-track hot cues. */
     currentTrackPath = file.getFullPathName();
     loadHotCuesForCurrentTrack();
+
+    /** Persist last loaded track path so this deck can restore it on next launch. */
+    saveCurrentTrackState();
 }
 
 void DeckGUI::handleHotCuePressed(int cueIndex)
@@ -469,6 +523,136 @@ void DeckGUI::saveHotCuesForCurrentTrack() const
     if (!replacedExisting)
     {
         tracks->add(updatedTrackVar);
+    }
+
+    stateFile.replaceWithText(juce::JSON::toString(state, true));
+}
+
+juce::File DeckGUI::getDeckTrackStateFile() const
+{
+    /** Store per-deck loaded track paths in app-data so decks restore on reopen. */
+    const auto appDataDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                .getChildFile("OtoDecks");
+    appDataDir.createDirectory();
+    return appDataDir.getChildFile("deck_tracks.json");
+}
+
+void DeckGUI::loadCurrentTrackState()
+{
+    /** Skip restore if this deck does not have a stable state id. */
+    if (deckStateId.isEmpty())
+    {
+        return;
+    }
+
+    const auto stateFile = getDeckTrackStateFile();
+    if (!stateFile.existsAsFile())
+    {
+        return;
+    }
+
+    const auto parsedState = juce::JSON::parse(stateFile.loadFileAsString());
+    const auto* stateObject = parsedState.getDynamicObject();
+    if (stateObject == nullptr)
+    {
+        return;
+    }
+
+    const auto* deckTracks = stateObject->getProperty("deckTracks").getArray();
+    if (deckTracks == nullptr)
+    {
+        return;
+    }
+
+    for (const auto& deckEntry : *deckTracks)
+    {
+        const auto* deckObject = deckEntry.getDynamicObject();
+        if (deckObject == nullptr)
+        {
+            continue;
+        }
+
+        if (deckObject->getProperty("deckId").toString() != deckStateId)
+        {
+            continue;
+        }
+
+        const auto savedPath = deckObject->getProperty("path").toString();
+        if (savedPath.isEmpty())
+        {
+            return;
+        }
+
+        const juce::File savedFile{savedPath};
+        if (savedFile.existsAsFile())
+        {
+            loadTrackFile(savedFile);
+        }
+        return;
+    }
+}
+
+void DeckGUI::saveCurrentTrackState() const
+{
+    /** Persist current deck track only when deck id and track path are valid. */
+    if (deckStateId.isEmpty() || currentTrackPath.isEmpty())
+    {
+        return;
+    }
+
+    const auto stateFile = getDeckTrackStateFile();
+    juce::var state = createEmptyDeckTrackState();
+
+    if (stateFile.existsAsFile())
+    {
+        const auto parsed = juce::JSON::parse(stateFile.loadFileAsString());
+        if (parsed.getDynamicObject() != nullptr)
+        {
+            state = parsed;
+        }
+    }
+
+    auto* stateObject = state.getDynamicObject();
+    if (stateObject == nullptr)
+    {
+        state = createEmptyDeckTrackState();
+        stateObject = state.getDynamicObject();
+    }
+
+    auto deckTracksVar = stateObject->getProperty("deckTracks");
+    auto* deckTracks = deckTracksVar.getArray();
+    if (deckTracks == nullptr)
+    {
+        stateObject->setProperty("deckTracks", juce::var(juce::Array<juce::var>{}));
+        deckTracksVar = stateObject->getProperty("deckTracks");
+        deckTracks = deckTracksVar.getArray();
+    }
+
+    if (deckTracks == nullptr)
+    {
+        return;
+    }
+
+    auto updatedDeckObject = std::make_unique<juce::DynamicObject>();
+    updatedDeckObject->setProperty("deckId", deckStateId);
+    updatedDeckObject->setProperty("path", currentTrackPath);
+    const juce::var updatedDeckVar(updatedDeckObject.release());
+
+    bool replacedExisting = false;
+    for (int index = 0; index < deckTracks->size(); ++index)
+    {
+        const auto* existingObject = deckTracks->getReference(index).getDynamicObject();
+        if (existingObject != nullptr && existingObject->getProperty("deckId").toString() == deckStateId)
+        {
+            deckTracks->set(index, updatedDeckVar);
+            replacedExisting = true;
+            break;
+        }
+    }
+
+    if (!replacedExisting)
+    {
+        deckTracks->add(updatedDeckVar);
     }
 
     stateFile.replaceWithText(juce::JSON::toString(state, true));

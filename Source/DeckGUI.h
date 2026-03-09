@@ -22,9 +22,12 @@ public juce::Timer
 {
     public:
         DeckGUI(DJAudioPlayer* player,
+          const juce::String& deckStateId,
                 juce::AudioFormatManager & formatManagerToUse ,
                 juce::AudioThumbnailCache & cacheToUse);
         ~DeckGUI();
+        /** Restores the previously loaded track for this deck when the app starts. */
+        void initialisePersistentState();
         void paint (juce::Graphics&) override;
         void resized() override;
         /** implement Button::Listener */
@@ -55,6 +58,15 @@ public juce::Timer
 
         /** Saves hot cues for the currently loaded track into persistent storage. */
         void saveHotCuesForCurrentTrack() const;
+
+        /** Returns the file path used to persist per-deck loaded track state. */
+        juce::File getDeckTrackStateFile() const;
+
+        /** Loads the most recently used track for this deck from persistent storage. */
+        void loadCurrentTrackState();
+
+        /** Persists the currently loaded track path for this deck. */
+        void saveCurrentTrackState() const;
     private:
         juce::TextButton playButton{"PLAY"};
         juce::TextButton stopButton{"STOP"};
@@ -62,9 +74,15 @@ public juce::Timer
         juce::Slider gainSlider;
         juce::Slider speedSlider;
         juce::Slider posSlider;
+        juce::Label gainLabel;
+        juce::Label speedLabel;
+        juce::Label positionLabel;
         juce::Slider lowEqSlider;
         juce::Slider midEqSlider;
         juce::Slider highEqSlider;
+        juce::Label lowEqLabel;
+        juce::Label midEqLabel;
+        juce::Label highEqLabel;
         juce::TextButton setCueModeButton{"Set Cue Mode"};
         juce::TextButton clearHotCuesButton{"Clear All Cues"};
         std::array<juce::TextButton, 8> hotCueButtons{
@@ -81,6 +99,7 @@ public juce::Timer
           -1.0, -1.0, -1.0, -1.0,
           -1.0, -1.0, -1.0, -1.0
         };
+        juce::String deckStateId;
         juce::String currentTrackPath;
         std::unique_ptr<juce::FileChooser> fChooser;
         DJAudioPlayer* player;

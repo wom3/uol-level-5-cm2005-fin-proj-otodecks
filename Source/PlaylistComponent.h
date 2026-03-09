@@ -75,6 +75,8 @@ private:
 
   /** Adds selected files to the library and extracts display metadata (title + duration). */
   void addTracksFromFiles(const juce::Array<juce::File>& files);
+  /** Restores files into the visible library without rewriting persisted state during startup. */
+  void restoreTracksFromFiles(const juce::Array<juce::File>& files);
   /** Formats seconds as mm:ss for the Duration column. */
   juce::String formatDuration(double seconds) const;
   /** Returns the file path used to store playlist state between app sessions. */

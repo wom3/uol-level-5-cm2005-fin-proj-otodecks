@@ -221,6 +221,42 @@ void PlaylistComponent::addTracksFromFiles(const juce::Array<juce::File>& files)
     saveLibraryStateToDisk();
 }
 
+void PlaylistComponent::restoreTracksFromFiles(const juce::Array<juce::File>& files)
+{
+    /** Rebuild visible rows from saved file paths without rewriting persistent state file. */
+    for (const auto& file : files)
+    {
+        if (!file.existsAsFile())
+        {
+            continue;
+        }
+
+        const bool alreadyTracked = std::any_of(libraryTracks.begin(),
+                                                libraryTracks.end(),
+                                                [&file](const LibraryTrack& existing)
+                                                {
+                                                    return existing.file == file;
+                                                });
+
+        if (alreadyTracked)
+        {
+            continue;
+        }
+
+        auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(file));
+        if (reader == nullptr)
+        {
+            continue;
+        }
+
+        const double durationSeconds = reader->lengthInSamples / reader->sampleRate;
+        libraryTracks.push_back(LibraryTrack{file, file.getFileName(), durationSeconds});
+    }
+
+    tableComponent.updateContent();
+    repaint();
+}
+
 juce::String PlaylistComponent::formatDuration(double seconds) const
 {
     /** Convert seconds to a human-friendly minutes:seconds display string. */
@@ -292,5 +328,5 @@ void PlaylistComponent::loadLibraryStateFromDisk()
         }
     }
 
-    addTracksFromFiles(filesToRestore);
+    restoreTracksFromFiles(filesToRestore);
 }
