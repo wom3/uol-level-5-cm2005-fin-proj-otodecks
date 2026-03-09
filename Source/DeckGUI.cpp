@@ -41,10 +41,13 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     gainSlider.addListener(this);
     speedSlider.addListener(this);
     posSlider.addListener(this);
+    
+    startTimer(500);
 }
 
 DeckGUI::~DeckGUI()
 {
+    stopTimer();
 }
 
 void DeckGUI::paint (juce::Graphics& g)
@@ -143,4 +146,10 @@ void DeckGUI::filesDropped (const juce::StringArray &files, int x, int y)
     {
         player->loadURL(juce::URL{juce::File{files[0]}});
     }
+}
+
+void DeckGUI::timerCallback()
+{
+//    std::cout << "DeckGUI::timerCallback" << std::endl;
+    waveFormDisplay.setPositionRelative(player->getPositionRelative());
 }
