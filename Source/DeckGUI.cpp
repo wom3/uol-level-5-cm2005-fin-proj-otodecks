@@ -25,6 +25,7 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     addAndMakeVisible(gainSlider);
     addAndMakeVisible(speedSlider);
     addAndMakeVisible(posSlider);
+    addAndMakeVisible(setCueModeButton);
     addAndMakeVisible(waveFormDisplay);
     /** Create and register 8 hot-cue buttons for assign/jump interactions. */
     for (int index = 0; index < static_cast<int>(hotCueButtons.size()); ++index)
@@ -47,9 +48,14 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
     playButton.addListener(this);
     stopButton.addListener(this);
     loadButton.addListener(this);
+    setCueModeButton.addListener(this);
     gainSlider.addListener(this);
     speedSlider.addListener(this);
     posSlider.addListener(this);
+
+    /** Toggle mode allows individual hot-cue overwrite without affecting other cues. */
+    setCueModeButton.setClickingTogglesState(true);
+    setCueModeButton.setToggleState(false, juce::dontSendNotification);
     
     startTimer(500);
 }
@@ -73,7 +79,7 @@ void DeckGUI::paint (juce::Graphics& g)
 void DeckGUI::resized()
 {
     /** Reserve two rows for 8 hot cues while preserving existing deck controls. */
-    const int rowH = getHeight() / 11;
+    const int rowH = getHeight() / 12;
     const int cueButtonWidth = getWidth() / 4;
 
     playButton.setBounds(0, 0, getWidth(), rowH);
@@ -94,7 +100,8 @@ void DeckGUI::resized()
                                                                rowH);
     }
 
-    loadButton.setBounds(0, rowH * 10, getWidth(), rowH);
+    setCueModeButton.setBounds(0, rowH * 10, getWidth(), rowH);
+    loadButton.setBounds(0, rowH * 11, getWidth(), rowH);
 }
 
 void DeckGUI::buttonClicked(juce::Button* button)
@@ -126,6 +133,14 @@ void DeckGUI::buttonClicked(juce::Button* button)
                 loadTrackFile(result);
             }
         });
+    }
+
+    if (button == &setCueModeButton)
+    {
+        /** Visual feedback indicates whether cue presses will overwrite stored cue points. */
+        const bool isEditMode = setCueModeButton.getToggleState();
+        setCueModeButton.setButtonText(isEditMode ? "Set Cue Mode: ON" : "Set Cue Mode");
+        return;
     }
 
     for (int cueIndex = 0; cueIndex < static_cast<int>(hotCueButtons.size()); ++cueIndex)
@@ -196,9 +211,21 @@ void DeckGUI::loadTrackFile(const juce::File& file)
 
 void DeckGUI::handleHotCuePressed(int cueIndex)
 {
-    /** First press assigns current position; next press jumps to that stored cue. */
+    /** Cue press either overwrites one cue in edit mode or triggers existing cue in normal mode. */
     if (cueIndex < 0 || cueIndex >= static_cast<int>(hotCuePositions.size()))
     {
+        return;
+    }
+
+    const double currentPosition = player->getPositionRelative();
+    const bool hasValidCurrentPosition = std::isfinite(currentPosition) && currentPosition >= 0.0 && currentPosition <= 1.0;
+    const bool isEditMode = setCueModeButton.getToggleState();
+
+    if (isEditMode && hasValidCurrentPosition)
+    {
+        /** R3B: overwrite only the selected cue with the current playhead position. */
+        hotCuePositions[static_cast<size_t>(cueIndex)] = currentPosition;
+        hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1) + "*");
         return;
     }
 
@@ -209,8 +236,7 @@ void DeckGUI::handleHotCuePressed(int cueIndex)
         return;
     }
 
-    const double currentPosition = player->getPositionRelative();
-    if (std::isfinite(currentPosition) && currentPosition >= 0.0 && currentPosition <= 1.0)
+    if (hasValidCurrentPosition)
     {
         hotCuePositions[static_cast<size_t>(cueIndex)] = currentPosition;
         hotCueButtons[static_cast<size_t>(cueIndex)].setButtonText("HC" + juce::String(cueIndex + 1) + "*");

@@ -47,6 +47,7 @@ public juce::Timer
         juce::Slider gainSlider;
         juce::Slider speedSlider;
         juce::Slider posSlider;
+        juce::TextButton setCueModeButton{"Set Cue Mode"};
         std::array<juce::TextButton, 8> hotCueButtons{
           juce::TextButton{"HC1"},
           juce::TextButton{"HC2"},
