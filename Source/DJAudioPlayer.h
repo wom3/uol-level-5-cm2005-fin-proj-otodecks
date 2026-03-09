@@ -16,7 +16,7 @@ class DJAudioPlayer : public juce::AudioSource
 {
     public:
     
-    DJAudioPlayer();
+    DJAudioPlayer(juce::AudioFormatManager& _formatManager );
     ~DJAudioPlayer();
     
     void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override;
@@ -34,7 +34,7 @@ class DJAudioPlayer : public juce::AudioSource
     
     private:
     
-    juce::AudioFormatManager formatManager;
+    juce::AudioFormatManager& formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource>  readerSource;
     juce::AudioTransportSource transportSource;
     // Wrap transportSource with a resampler so speed changes affect playback
