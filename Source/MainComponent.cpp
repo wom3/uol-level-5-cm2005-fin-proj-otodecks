@@ -6,6 +6,9 @@ MainComponent::MainComponent()
 
 //DeckGUI::DeckGUI(DJAudioPlayer* _player) : player(_player)
 {
+    /** Register audio formats before any component attempts to create audio readers. */
+    formatManager.registerBasicFormats();
+
     // Make sure you set the size of the component after
     // you add any child components.
     setSize (800, 600);
@@ -38,8 +41,9 @@ MainComponent::MainComponent()
             deck2.loadTrackFile(file);
         }
     });
-    
-    formatManager.registerBasicFormats();
+
+    /** Restore persisted library tracks now that formats are available. */
+    playlistComponent.initialisePersistentState();
 }
 
 MainComponent::~MainComponent()

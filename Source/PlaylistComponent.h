@@ -34,6 +34,9 @@ public:
   PlaylistComponent(juce::AudioFormatManager& formatManagerToUse);
   ~PlaylistComponent() override;
 
+  /** Restores persisted library entries after audio formats have been registered. */
+  void initialisePersistentState();
+
   void paint(juce::Graphics&) override;
   void resized() override;
 
@@ -74,6 +77,12 @@ private:
   void addTracksFromFiles(const juce::Array<juce::File>& files);
   /** Formats seconds as mm:ss for the Duration column. */
   juce::String formatDuration(double seconds) const;
+  /** Returns the file path used to store playlist state between app sessions. */
+  juce::File getLibraryStateFile() const;
+  /** Saves current library file paths to persistent storage. */
+  void saveLibraryStateToDisk() const;
+  /** Restores library file paths from persistent storage. */
+  void loadLibraryStateFromDisk();
 
   juce::AudioFormatManager& formatManager;
   juce::TextButton importButton{"Import tracks"};

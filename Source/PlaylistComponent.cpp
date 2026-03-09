@@ -32,6 +32,12 @@ PlaylistComponent::~PlaylistComponent()
     importButton.removeListener(this);
 }
 
+void PlaylistComponent::initialisePersistentState()
+{
+    /** Restore previously imported library tracks after format registration is complete. */
+    loadLibraryStateFromDisk();
+}
+
 void PlaylistComponent::paint (juce::Graphics& g)
 {
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
@@ -210,6 +216,9 @@ void PlaylistComponent::addTracksFromFiles(const juce::Array<juce::File>& files)
 
     tableComponent.updateContent();
     repaint();
+
+    /** Persist playlist state whenever library content changes. */
+    saveLibraryStateToDisk();
 }
 
 juce::String PlaylistComponent::formatDuration(double seconds) const
@@ -224,4 +233,64 @@ juce::String PlaylistComponent::formatDuration(double seconds) const
 void PlaylistComponent::setTrackLoadRequestHandler(std::function<void(const juce::File&, int)> handler)
 {
     trackLoadRequestHandler = std::move(handler);
+}
+
+juce::File PlaylistComponent::getLibraryStateFile() const
+{
+    /** Store playlist state in the user app-data directory across launches. */
+    const auto appDataDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                .getChildFile("OtoDecks");
+    appDataDir.createDirectory();
+    return appDataDir.getChildFile("music_library.json");
+}
+
+void PlaylistComponent::saveLibraryStateToDisk() const
+{
+    /** Save an array of absolute file paths for restoring the playlist next run. */
+    juce::Array<juce::var> pathArray;
+    for (const auto& track : libraryTracks)
+    {
+        pathArray.add(track.file.getFullPathName());
+    }
+
+    const juce::var stateVar{pathArray};
+    const auto jsonText = juce::JSON::toString(stateVar, true);
+
+    const auto stateFile = getLibraryStateFile();
+    stateFile.replaceWithText(jsonText);
+}
+
+void PlaylistComponent::loadLibraryStateFromDisk()
+{
+    /** Read persisted file paths and rebuild track metadata table if files still exist. */
+    const auto stateFile = getLibraryStateFile();
+    if (!stateFile.existsAsFile())
+    {
+        return;
+    }
+
+    const auto jsonText = stateFile.loadFileAsString();
+    const auto parsed = juce::JSON::parse(jsonText);
+    if (!parsed.isArray())
+    {
+        return;
+    }
+
+    juce::Array<juce::File> filesToRestore;
+    const auto* savedPaths = parsed.getArray();
+    if (savedPaths == nullptr)
+    {
+        return;
+    }
+
+    for (const auto& item : *savedPaths)
+    {
+        const auto fullPath = item.toString();
+        if (fullPath.isNotEmpty())
+        {
+            filesToRestore.add(juce::File{fullPath});
+        }
+    }
+
+    addTracksFromFiles(filesToRestore);
 }
