@@ -6,50 +6,43 @@
   ==============================================================================
 */
 
-#include <JuceHeader.h>
 #include "PlaylistComponent.h"
 
-PlaylistComponent::PlaylistComponent()
+#include <algorithm>
+#include <cmath>
+
+PlaylistComponent::PlaylistComponent(juce::AudioFormatManager& formatManagerToUse)
+    : formatManager(formatManagerToUse)
 {
-    trackTitles.push_back("Track 1");
-    trackTitles.push_back("Track 2");
-    trackTitles.push_back("Track 3");
-    trackTitles.push_back("Track 4");
-    trackTitles.push_back("Track 5");
-    trackTitles.push_back("Track 6");
-    
-    
-    tableComponent.getHeader().addColumn("Track title", 1, 500);
-    tableComponent.getHeader().addColumn("", 2, 300);
+    /** Configure table columns to show required R2A metadata. */
+    tableComponent.getHeader().addColumn("Track title", 1, 420);
+    tableComponent.getHeader().addColumn("Duration", 2, 120);
     tableComponent.setModel(this);
+
+    /** Import button loads one or more tracks into the music library table. */
+    importButton.addListener(this);
+    addAndMakeVisible(importButton);
     addAndMakeVisible(tableComponent);
 }
 
 PlaylistComponent::~PlaylistComponent()
 {
+    importButton.removeListener(this);
 }
-
-
 
 void PlaylistComponent::paint (juce::Graphics& g)
 {
-//    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId)); // clea
-//    g.setColour (juce::Colours::grey);
-//    g.drawRect (getLocalBounds(), 1); // draw an outline around the component
-//    g.setColour (juce::Colours::greenyellow);
-//    g.setFont (20.0f);
-//    g.drawText ("Wave Form Display", getLocalBounds(),
-//                juce::Justification::centred, true);
-};
-
-
+    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+}
 
 void PlaylistComponent::resized()
 {
-    tableComponent.setBounds(0, 0, getWidth(), getHeight());
+    constexpr int buttonHeight = 34;
+    constexpr int margin = 8;
+
+    importButton.setBounds(margin, margin, 160, buttonHeight);
+    tableComponent.setBounds(0, buttonHeight + (margin * 2), getWidth(), getHeight() - (buttonHeight + (margin * 2)));
 }
-
-
 
 void PlaylistComponent::paintRowBackground(juce::Graphics& g,
                                            int rowNumber,
@@ -76,39 +69,101 @@ void PlaylistComponent::paintCell(juce::Graphics& g,
                                   int height,
                                   bool rowIsSelected)
 {
-    g.drawText(trackTitles[rowNumber], 2, 0, width - 4, height, juce::Justification::centredLeft, true);
+    juce::ignoreUnused(rowIsSelected);
+
+    if (rowNumber < 0 || rowNumber >= getNumRows())
+    {
+        return;
+    }
+
+    const auto& track = libraryTracks[static_cast<size_t>(rowNumber)];
+
+    if (columnId == 1)
+    {
+        g.drawText(track.title, 2, 0, width - 4, height, juce::Justification::centredLeft, true);
+    }
+    else if (columnId == 2)
+    {
+        g.drawText(formatDuration(track.durationSeconds),
+                   2,
+                   0,
+                   width - 4,
+                   height,
+                   juce::Justification::centred,
+                   true);
+    }
 }
 
 int PlaylistComponent::getNumRows()
 {
-    return static_cast<int>(trackTitles.size());
-}
-
-
-
-juce::Component* PlaylistComponent::refreshComponentForCell (int rowNumber,
-                                           int columnId,
-                                           bool isRowSelected,
-                                           juce::Component *existingComponentToUpdate
-                                           )
-{
-    if (columnId == 2)
-    {
-        if (existingComponentToUpdate == nullptr)
-        {
-            juce::TextButton* btn = new juce::TextButton{"play"};
-            juce::String id{std::to_string(rowNumber)};
-            btn->setComponentID(id);
-            
-            btn->addListener(this);
-            existingComponentToUpdate = btn;
-        }
-    }
-    return existingComponentToUpdate;
+    return static_cast<int>(libraryTracks.size());
 }
 
 void PlaylistComponent::buttonClicked(juce::Button* button)
 {
-    int id = std::stoi(button->getComponentID().toStdString());
-    std::cout << "PlaylistComponent::buttonClicked " << trackTitles[id] <<std::endl;
+    if (button != &importButton)
+    {
+        return;
+    }
+
+    /** Open an async chooser that supports selecting multiple audio files. */
+    fileChooser = std::make_unique<juce::FileChooser>(
+        "Select one or more audio files...",
+        juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+        "*.wav;*.mp3;*.aiff;*.aif;*.flac");
+
+    const auto flags = juce::FileBrowserComponent::openMode
+                       | juce::FileBrowserComponent::canSelectFiles
+                       | juce::FileBrowserComponent::canSelectMultipleItems;
+
+    fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser)
+    {
+        /** Populate library rows from the selected files. */
+        addTracksFromFiles(chooser.getResults());
+    });
+}
+
+void PlaylistComponent::addTracksFromFiles(const juce::Array<juce::File>& files)
+{
+    /** Import each readable file once, then cache title and duration metadata for the table. */
+    for (const auto& file : files)
+    {
+        if (!file.existsAsFile())
+        {
+            continue;
+        }
+
+        const bool alreadyTracked = std::any_of(libraryTracks.begin(),
+                                                libraryTracks.end(),
+                                                [&file](const LibraryTrack& existing)
+                                                {
+                                                    return existing.file == file;
+                                                });
+
+        if (alreadyTracked)
+        {
+            continue;
+        }
+
+        auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(file));
+        if (reader == nullptr)
+        {
+            continue;
+        }
+
+        const double durationSeconds = reader->lengthInSamples / reader->sampleRate;
+        libraryTracks.push_back(LibraryTrack{file, file.getFileName(), durationSeconds});
+    }
+
+    tableComponent.updateContent();
+    repaint();
+}
+
+juce::String PlaylistComponent::formatDuration(double seconds) const
+{
+    /** Convert seconds to a human-friendly minutes:seconds display string. */
+    const int totalSeconds = static_cast<int>(std::round(std::max(0.0, seconds)));
+    const int minutes = totalSeconds / 60;
+    const int remainingSeconds = totalSeconds % 60;
+    return juce::String::formatted("%d:%02d", minutes, remainingSeconds);
 }

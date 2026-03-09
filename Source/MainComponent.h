@@ -47,7 +47,8 @@ private:
     
     std::unique_ptr<juce::FileChooser> fChooser;
     juce::AudioThumbnail audioThumb;
-    PlaylistComponent playlistComponent; 
+    /** Playlist uses the shared format manager to read imported track metadata. */
+    PlaylistComponent playlistComponent{formatManager};
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

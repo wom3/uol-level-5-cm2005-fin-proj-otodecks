@@ -19,69 +19,59 @@
 
 #pragma once
 
-
+#pragma once
 
 #include <JuceHeader.h>
-
 #include <vector>
 
-#include <string>
-
-
-
-class PlaylistComponent : public juce::Component, public juce::TableListBoxModel, public juce::Button::Listener
-
+class PlaylistComponent : public juce::Component,
+              public juce::TableListBoxModel,
+              public juce::Button::Listener
 {
+public:
+  PlaylistComponent(juce::AudioFormatManager& formatManagerToUse);
+  ~PlaylistComponent() override;
 
-    public:
+  void paint(juce::Graphics&) override;
+  void resized() override;
 
-        PlaylistComponent();
+  void paintRowBackground(juce::Graphics&,
+              int rowNumber,
+              int width,
+              int height,
+              bool rowIsSelected) override;
 
-        ~PlaylistComponent();
+  void paintCell(juce::Graphics&,
+           int rowNumber,
+           int columnId,
+           int width,
+           int height,
+           bool rowIsSelected) override;
 
-        
+  int getNumRows() override;
+  void buttonClicked(juce::Button* button) override;
 
-    void paint (juce::Graphics&) override;
+private:
+  /** Stores one imported library track with metadata shown in the playlist table. */
+  struct LibraryTrack
+  {
+    juce::File file;
+    juce::String title;
+    double durationSeconds{0.0};
+  };
 
-    void resized() override;
+  /** Adds selected files to the library and extracts display metadata (title + duration). */
+  void addTracksFromFiles(const juce::Array<juce::File>& files);
+  /** Formats seconds as mm:ss for the Duration column. */
+  juce::String formatDuration(double seconds) const;
 
-    
+  juce::AudioFormatManager& formatManager;
+  juce::TextButton importButton{"Import tracks"};
+  juce::TableListBox tableComponent;
+  std::vector<LibraryTrack> libraryTracks;
+  std::unique_ptr<juce::FileChooser> fileChooser;
 
-    void paintRowBackground(juce::Graphics&,
-                            int rowNumber,
-                            int width,
-                            int height,
-                            bool rowIsSelected) override;
-
-    
-
-    void paintCell(juce::Graphics&,
-                   int rowNumber,
-                   int columnId,
-                   int width,
-                   int height,
-                   bool rowIsSelected) override;
-    
-    juce::Component* refreshComponentForCell (int rowNumber,
-                                               int columnId,
-                                               bool isRowSelected,
-                                               juce::Component *existingComponentToUpdate
-                                               ) override;
-
-    void buttonClicked(juce::Button* button) override;
-
-    int getNumRows() override;
-
-    private:
-
-        juce::TableListBox tableComponent;
-
-        std::vector<std::string> trackTitles;
-
-    
-
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlaylistComponent)
-
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlaylistComponent)
 };
 
 
